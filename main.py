@@ -25,7 +25,7 @@ cursor = conn.cursor()
 
 vids = scrapetube.get_channel(channel_id, content_type="streams")
 print(channel_id)
-cursor.execute(f"CREATE TABLE IF NOT EXISTS {channel_id} (stream_id varchar(255), user_id varchar(255), user_name varchar(255), user_avatar varchar(255),  message_timestamp varchar(255), message_content varchar(255))")
+cursor.execute(f"CREATE TABLE IF NOT EXISTS {channel_id} (stream_id varchar(255), user_id varchar(255), user_name varchar(255), user_avatar varchar(255),  message_timestamp varchar(255), message_origin_time varchar(255), message_content varchar(255))")
 conn.commit()
 
 """
@@ -43,7 +43,7 @@ stream_ids = [y[0] for y in x]
 print(stream_ids)
 videos = [vid for vid in vids if vid["videoId"] not in stream_ids]
 
-for vid in videos:
+for vid in videos[0:1]:
     stream_id = vid['videoId']
     print(f"processing {stream_id}")
     chat = ChatDownloader().get_chat(stream_id)
@@ -55,8 +55,10 @@ for vid in videos:
             user_avatar = message['author']['images'][0]['url']
             message_timestamp = message['time_in_seconds']
             message_content = message['message']
+            time_of_message = message['timestamp']/1000000
         except Exception as e:
             continue
-        cursor.execute(f"INSERT INTO {channel_id} (stream_id, user_id, user_name, user_avatar, message_timestamp, message_content) VALUES (?, ?, ?, ?, ?, ?)", (stream_id, user_id, user_name, user_avatar, message_timestamp, message_content))
-        #print(json.dumps(message, indent=4))
+        cursor.execute(f"INSERT INTO {channel_id} (stream_id, user_id, user_name, user_avatar, message_timestamp, message_origin_time, message_content) VALUES (?, ?, ?, ?, ?, ?)", (stream_id, user_id, user_name, user_avatar, message_timestamp, time_of_message ,message_content))
+        print(json.dumps(message, indent=4))
+        
     conn.commit()
