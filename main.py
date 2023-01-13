@@ -43,10 +43,18 @@ stream_ids = [y[0] for y in x]
 print(stream_ids)
 videos = [vid for vid in vids if vid["videoId"] not in stream_ids]
 
-for vid in videos[0:1]:
+processed_count = 0
+
+for vid in videos:
+    processed_count += 1
     stream_id = vid['videoId']
     print(f"processing {stream_id}")
-    chat = ChatDownloader().get_chat(stream_id)
+    print(f"{processed_count}/{len(videos)}")
+
+    try:
+        chat = ChatDownloader().get_chat(stream_id)
+    except Exception as e:
+        continue
     #print(json.dumps(vid, indent=4))
     for message in chat:
         try:
@@ -58,7 +66,7 @@ for vid in videos[0:1]:
             time_of_message = message['timestamp']/1000000
         except Exception as e:
             continue
-        cursor.execute(f"INSERT INTO {channel_id} (stream_id, user_id, user_name, user_avatar, message_timestamp, message_origin_time, message_content) VALUES (?, ?, ?, ?, ?, ?)", (stream_id, user_id, user_name, user_avatar, message_timestamp, time_of_message ,message_content))
-        print(json.dumps(message, indent=4))
+        cursor.execute(f"INSERT INTO {channel_id} (stream_id, user_id, user_name, user_avatar, message_timestamp, message_origin_time, message_content) VALUES (?, ?, ?, ?, ?, ?, ?)", (stream_id, user_id, user_name, user_avatar, message_timestamp, time_of_message ,message_content))
+        #print(json.dumps(message, indent=4))
         
     conn.commit()
