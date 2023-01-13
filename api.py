@@ -38,7 +38,7 @@ def stats():
     first_stream_dt = datetime.fromtimestamp(int(float(first_message[5])))
     ago = (datetime.now() - first_stream_dt)
     first_stream_link = f"https://www.youtube.com/watch?v={first_stream_id}&t={first_stream_timestamp}s"
-    return f"{user_name} has said {count} messages in chat. Their first message was in {first_stream_link} was {ago.days} days ago."
+    return f"{user_name} has said {count} messages in chat. Their first message was on {first_stream_link} which was streamed {ago.days} days ago."
 
 @app.get("/channel")
 def channel_stats():
