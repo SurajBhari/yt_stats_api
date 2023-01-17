@@ -1,5 +1,5 @@
 # yt_stats_api
-![ToasterRoaster Eyeq Drake4gaming Eupho](https://cronitor.io/badges/WOwI7N/production/_pswLIK4ikblKdWU9N4oJxwBDUk.svg)
+![ToasterRoaster Eyeq Eupho Xyaa](https://cronitor.io/badges/2AOCSO/production/1I2dyvqRJwTPnHEX-cdldqeYGZA.svg)
 
 This is a better version of my previously made yt_chat_arranger </br>
 who knew json are not good storage when you are storing this much of data ? 
