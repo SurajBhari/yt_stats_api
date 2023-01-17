@@ -45,6 +45,18 @@ videos = [vid for vid in vids if vid["videoId"] not in stream_ids]
 
 processed_count = 0
 
+
+def ignore_exc(iterable):
+    iterator = iter(iterable)
+    while True:
+        try:
+            item = next(iterator)
+        except StopIteration:
+            break
+        except:
+            continue
+        yield item
+
 for vid in videos:
     processed_count += 1
     stream_id = vid['videoId']
@@ -56,7 +68,8 @@ for vid in videos:
     except Exception as e:
         continue
     #print(json.dumps(vid, indent=4))
-    for message in chat:
+    
+    for message in ignore_exc(chat):
         try:
             user_id = message['author']['id']
             user_name = message['author']['name']
