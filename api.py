@@ -31,7 +31,10 @@ def stats():
     user_data = cursor.fetchall()
     conn.commit()
     count = len(user_data)
-    first_message = user_data[0]
+    try:
+        first_message = user_data[0]
+    except IndexError:
+        return f"{user_name} has not said anything in chat yet. Is this your first stream? :D"
     print(first_message)
     first_stream_id = first_message[0]
     first_stream_timestamp = str(int(float(first_message[4])))
