@@ -25,7 +25,7 @@ cursor = conn.cursor()
 
 vids = scrapetube.get_channel(channel_id, content_type="streams")
 print(channel_id)
-channel_id.replace("-", "_") # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
+channel_id = channel_id.replace("-", "_") # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
 cursor.execute(f"CREATE TABLE IF NOT EXISTS {channel_id} (stream_id varchar(255), user_id varchar(255), user_name varchar(255), user_avatar varchar(255),  message_timestamp varchar(255), message_origin_time varchar(255), message_content varchar(255))")
 conn.commit()
 

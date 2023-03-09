@@ -24,7 +24,7 @@ def stats():
         return "Not able to auth"
 
     channel_id = channel.get("providerId")[0]
-    channel_id.replace("-", "_") # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
+    channel_id = channel_id.replace("-", "_") # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_id = user.get("providerId")[0]
     user_name = user.get("displayName")[0]
 
