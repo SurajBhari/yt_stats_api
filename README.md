@@ -21,6 +21,8 @@ running api.py will expose 2 gateway on port 5000 </br>
 
 `/stats` this automatically returns the stats for the person who queried for it. for privacy reason only the person who queried can have the data. + from nightbot only for the time being. 
 
+`/top` this returns top 10 chatters in the chat in a string format. if you want more you can pass something like `/top/20` to get top 20. this automatically denies the request if you put anything other than a number say for `/top/what` will return immediatly. i have decided top 20 because its nice and doesn't spam the chat. 
+
 as for NightBot 
 you can use </br>`!commands add !stats $(urlfetch http://your_url:5000/stats)`
 </br>`!commands add !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
