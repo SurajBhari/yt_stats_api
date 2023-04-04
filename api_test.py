@@ -104,24 +104,6 @@ async def top(query=None):
     return string
         
 
-@app.get("/wordcount/<word>")
-def wordcount(word:str=None):
-    if not word:
-        return "Please pass a word(s) to count for."
-    try:
-        channel = parse_qs(request.headers["Nightbot-Channel"])
-        response_url = request.headers["Nightbot-Response-Url"]
-    except KeyError:
-        return "Not able to auth"
-
-    channel_id = channel.get("providerId")[0]
-    #Find all the queries as count that have the word in it 
-    cursor.execute(f"SELECT * FROM {channel_id} WHERE message_content LIKE ?", (f"%{word}%",))
-    data = cursor.fetchall()
-    conn.commit()
-    return f"'{word}' has been said {len(data)} times in chat."
-
-
     
 @app.get("/channel")
 def channel_stats():
