@@ -15,7 +15,7 @@ have a cron job entry for something like </br>
 you can put the query in queue by doing something like</br> `python3 main.py -c UCbZZmB8L3IEHutGbvpWo9Ow && python3 main.py -c UCLcNciLKdI380VqdpDlIbxw` </br>
 so it go one by one. instead of going parallely and limiting the source/crash the sql connection
 
-running api.py will expose 3 gateway on port 5000 </br>
+running api.py will expose 4 gateway on port 5000 </br>
 
 `/channel` it is recommended you don't use this gateway as it is resource heavy. so stay away if you don't have beefy machine.</br>
 
@@ -23,7 +23,10 @@ running api.py will expose 3 gateway on port 5000 </br>
 
 `/top` this returns top 10 chatters in the chat in a string format. if you want more you can pass something like `/top/20` to get top 20. this automatically denies the request if you put anything other than a number say for `/top/what` will return immediatly. </br>i have decided top 10 because its nice and doesn't spam the chat. 
 
+`/wordcount/<word>` returns the number of times a message was sent in chat with that "word" in it. case insensitive. not passing word will return immediatly.
+
 as for NightBot 
 you can use </br>`!commands add !stats $(urlfetch http://your_url:5000/stats)`
 you can use `!commands add !top $(urlfetch http://your_url:5000/top/$(query))`
+you can use `!commands add !wordcount $(urlfetch http://your_url:5000/wordcount/$(querystring))` </br>
 </br>`!commands add !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
