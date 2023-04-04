@@ -15,11 +15,7 @@ have a cron job entry for something like </br>
 you can put the query in queue by doing something like</br> `python3 main.py -c UCbZZmB8L3IEHutGbvpWo9Ow && python3 main.py -c UCLcNciLKdI380VqdpDlIbxw` </br>
 so it go one by one. instead of going parallely and limiting the source/crash the sql connection
 
-<<<<<<< HEAD
-running api.py will expose 4 gateway on port 5000 </br>
-=======
 running api.py will expose 2 gateway on port 5000 </br>
->>>>>>> parent of 953682b (document top)
 
 `/channel` it is recommended you don't use this gateway as it is resource heavy. so stay away if you don't have beefy machine.</br>
 
@@ -31,9 +27,4 @@ running api.py will expose 2 gateway on port 5000 </br>
 
 as for NightBot 
 you can use </br>`!commands add !stats $(urlfetch http://your_url:5000/stats)`
-<<<<<<< HEAD
-you can use `!commands add !top $(urlfetch http://your_url:5000/top/$(query))`
-you can use `!commands add !wordcount $(urlfetch http://your_url:5000/wordcount/$(querystring))` </br>
-=======
->>>>>>> parent of 953682b (document top)
 </br>`!commands add !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
