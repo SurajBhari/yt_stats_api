@@ -26,5 +26,8 @@ running api.py will expose 2 gateway on port 5000 </br>
 `/wordcount/<word>` returns the number of times a message was sent in chat with that "word" in it. case insensitive. not passing word will return immediatly.
 
 as for NightBot 
-you can use </br>`!commands add !stats $(urlfetch http://your_url:5000/stats)`
-</br>`!commands add !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
+you can use </br>
+`!addcom !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
+`!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))` </br>
+`!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)` </br>
+`!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))` </br>
