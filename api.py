@@ -31,7 +31,6 @@ def stats():
     user_id = user.get("providerId")[0]
     #user_id = "UCPgQs00LJYcATD0Uf7naPwA"
     user_name = user.get("displayName")[0]
-    data = get_ranking(channel_id)
     cursor.execute(f"SELECT * FROM {channel_id} WHERE user_id = ? ORDER BY message_origin_time LIMIT 1", (user_id,))
     try:
         first_message = list(cursor.fetchall())[0]
