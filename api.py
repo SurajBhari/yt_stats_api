@@ -104,6 +104,7 @@ async def top(query=None):
     return string
         
 
+@app.get("/wordcount/")
 @app.get("/wordcount/<word>")
 def wordcount(word:str=None):
     if not word:
@@ -122,27 +123,6 @@ def wordcount(word:str=None):
     return f"'{word}' has been said {len(data)} times in chat."
 
 
-    
-@app.get("/channel")
-def channel_stats():
-    try:
-        channel = parse_qs(request.headers["Nightbot-Channel"])
-    except KeyError:
-        return "Not able to auth"
-    
-    channel_id = channel.get("providerId")[0]
-    cursor.execute(f"SELECT * FROM {channel_id}")
-    channel_data = cursor.fetchall()
-    count = len(channel_data)
-
-    cursor.execute(f"SELECT COUNT(DISTINCT user_id) FROM {channel_id}")
-    individual_count = cursor.fetchone()[0]
-    conn.commit()
-
-    cursor.execute(f"SELECT COUNT(DISTINCT stream_id) FROM {channel_id}")
-    streams_count = cursor.fetchone()[0]
-    conn.commit()
-    return f"Channel has {count} messages in chat, {individual_count} people interacted across {streams_count} streams."
 
 
 app.run(host="0.0.0.0", port=5000)

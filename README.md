@@ -15,9 +15,8 @@ have a cron job entry for something like </br>
 you can put the query in queue by doing something like</br> `python3 main.py -c UCbZZmB8L3IEHutGbvpWo9Ow && python3 main.py -c UCLcNciLKdI380VqdpDlIbxw` </br>
 so it go one by one. instead of going parallely and limiting the source/crash the sql connection
 
-running api.py will expose 4 gateway on port 5000 </br>
+running api.py will expose 3 gateway on port 5000 </br>
 
-`/channel` it is recommended you don't use this gateway as it is resource heavy. so stay away if you don't have beefy machine.</br>
 
 `/stats` this automatically returns the stats for the person who queried for it. for privacy reason only the person who queried can have the data. + from nightbot only for the time being. 
 
@@ -27,7 +26,6 @@ running api.py will expose 4 gateway on port 5000 </br>
 
 as for NightBot 
 you can use </br>
-`!addcom !channelstats $(urlfetch http://your_url:5000/channel)` # try avoiding as mentioned above
 `!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))` </br>
 `!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)` </br>
 `!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))` </br>
