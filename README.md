@@ -29,3 +29,5 @@ you can use </br>
 `!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))` </br>
 `!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)` </br>
 `!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))` </br>
+`!addcom !oldest $(urlfetch http://surajbhari.info:5000/oldest/$(query))` </br>
+`!addcom !youngest $(urlfetch http://surajbhari.info:5000/youngest/$(query))` </br>
