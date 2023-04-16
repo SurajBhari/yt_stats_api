@@ -210,4 +210,27 @@ def wordcount(word:str=None):
     return f"'{word}' has been said {len(data)} times in chat."
 
 
+@app.get("/firstsaid/")
+@app.get("/firstsaid/<word>")
+def firstsaid(word:str=None):
+    if not word:
+        return "Please pass a word(s) to count for."
+    try:
+        channel = parse_qs(request.headers["Nightbot-Channel"])
+        response_url = request.headers["Nightbot-Response-Url"]
+    except KeyError:
+        return "Not able to auth"
+    
+    channel_id = channel.get("providerId")[0]
+    #channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
+    #Find all the queries as count that have the word in it
+    cursor.execute(f"SELECT * FROM {channel_id} WHERE message_content LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ", (f"%{word}%",))
+    data = cursor.fetchall()
+    conn.commit()
+    if len(data) == 0:
+        return f"'{word}' has never been said in chat."
+    
+    ago = (datetime.now() - datetime.fromtimestamp(int(float(data[0][5])))).days
+    return f"'{word}' was first said by {data[0][2]} exactly {ago} days ago. https://youtu.be/{data[0][0]}?t={str(int(float(data[0][4])))}"
+
 app.run(host="0.0.0.0", port=5000)

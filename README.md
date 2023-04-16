@@ -31,3 +31,4 @@ you can use </br>
 `!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))` </br>
 `!addcom !oldest $(urlfetch http://surajbhari.info:5000/oldest/$(query))` </br>
 `!addcom !youngest $(urlfetch http://surajbhari.info:5000/youngest/$(query))` </br>
+`!addcom !firstsaid $(urlfetch http://surajbhari.info:5000/firstsaid/$(querystring))` </br>
