@@ -1,7 +1,7 @@
 import sqlite3
 
 # Set up a connection to the database file
-conn = sqlite3.connect('database.db')
+conn = sqlite3.connect("database.db")
 
 # Create a cursor object to execute queries
 c = conn.cursor()
@@ -12,7 +12,7 @@ while True:
     command = input("Enter a SQL command (or 'quit' to exit): ")
 
     # Check if the user wants to quit
-    if command.lower() == 'quit':
+    if command.lower() == "quit":
         break
 
     # Execute the user's command
@@ -20,7 +20,7 @@ while True:
         c.execute(command)
 
         # If the command is a SELECT statement, print the results
-        if command.upper().startswith('SELECT'):
+        if command.upper().startswith("SELECT"):
             results = c.fetchall()
             for row in results:
                 print(row)

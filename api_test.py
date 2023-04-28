@@ -13,9 +13,10 @@ conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
 
-@app.get('/')
+@app.get("/")
 def main():
     return "if you are reading this. then stats are working fine."
+
 
 @app.get("/stats")
 def stats():
@@ -26,23 +27,28 @@ def stats():
         return "Not able to auth"
 
     channel_id = channel.get("providerId")[0]
-    #channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace("-", "_") # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
+    # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
+    channel_id = channel_id.replace(
+        "-", "_"
+    )  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_id = user.get("providerId")[0]
-    #user_id = "UCPgQs00LJYcATD0Uf7naPwA"
+    # user_id = "UCPgQs00LJYcATD0Uf7naPwA"
     user_name = user.get("displayName")[0]
     data = get_ranking(channel_id)
-    cursor.execute(f"SELECT * FROM {channel_id} WHERE user_id = ? ORDER BY message_origin_time LIMIT 1", (user_id,))
+    cursor.execute(
+        f"SELECT * FROM {channel_id} WHERE user_id = ? ORDER BY message_origin_time LIMIT 1",
+        (user_id,),
+    )
     try:
         first_message = list(cursor.fetchall())[0]
     except IndexError:
         return f"{user_name} has not sent any messages yet. Is this your first time on this channel ? :D Consider Subscribing to the channel to support the streamer."
-    
+
     print(first_message)
     first_stream_id = first_message[0]
     first_stream_timestamp = str(int(float(first_message[4])))
     first_stream_dt = datetime.fromtimestamp(int(float(first_message[5])))
-    ago = (datetime.now() - first_stream_dt)
+    ago = datetime.now() - first_stream_dt
 
     ranking_data = get_ranking(channel_id)
     ranking = 0
@@ -53,7 +59,7 @@ def stats():
     return f"{user_name} is ranked #{ranking} in chat with {x[2]} messages. Their first message was on stream that was streamed {ago.days} days ago."
 
 
-def get_ranking(channel_id:str):
+def get_ranking(channel_id: str):
     query = f"SELECT user_id, user_name, COUNT(*) as num_messages FROM {channel_id} GROUP BY user_id ORDER BY num_messages DESC;"
     cursor.execute(query)
     data = cursor.fetchall()
@@ -79,7 +85,7 @@ async def top(query=None):
         return "Not able to auth"
 
     channel_id = channel.get("providerId")[0]
-    #channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
+    # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
     channel_id = channel_id.replace("-", "_")
     data = get_ranking(channel_id)
     string = ""
@@ -90,9 +96,9 @@ async def top(query=None):
     print(string)
     if len(string) > 200:
         # split the string into parts of 200 characters and send it to request_url
-        parts = [string[i:i+200] for i in range(0, len(string), 200)]
+        parts = [string[i : i + 200] for i in range(0, len(string), 200)]
         print(parts)
-        #yield parts[0]
+        # yield parts[0]
         for part in parts:
             requests.post(response_url, data={"message": part})
             # if its not the second last part, wait for 5 seconds
@@ -102,16 +108,15 @@ async def top(query=None):
                 return parts[-1]
         return "Here ^^"
     return string
-        
 
-    
+
 @app.get("/channel")
 def channel_stats():
     try:
         channel = parse_qs(request.headers["Nightbot-Channel"])
     except KeyError:
         return "Not able to auth"
-    
+
     channel_id = channel.get("providerId")[0]
     cursor.execute(f"SELECT * FROM {channel_id}")
     channel_data = cursor.fetchall()
