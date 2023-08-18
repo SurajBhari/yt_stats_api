@@ -1,5 +1,6 @@
 # yt_stats_api
 ![ToasterRoaster Eyeq Eupho Xyaa](https://cronitor.io/badges/2AOCSO/production/1I2dyvqRJwTPnHEX-cdldqeYGZA.svg)
+You can see [https://ytstats.cronitorstatus.com/](Operational Status here.)
 
 This is a better version of my previously made yt_chat_arranger </br>
 who knew json are not good storage when you are storing this much of data ? 
