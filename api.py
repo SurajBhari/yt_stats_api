@@ -14,14 +14,6 @@ conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
 
-def print(*args, **kwargs):
-    with open("logs_new.txt", "a") as f:
-        f.write(str(args))
-        f.write(str(kwargs))
-    return builtins.print(*args, **kwargs)
-    # return "Hello World"
-
-
 @app.get("/")
 def main():
     return "if you are reading this. then stats are working fine."
@@ -32,6 +24,7 @@ def stats():
     try:
         channel = parse_qs(request.headers["Nightbot-Channel"])
         user = parse_qs(request.headers["Nightbot-User"])
+        response_url = request.headers["Nightbot-Response-Url"]
     except KeyError:
         return "Not able to auth"
 
@@ -43,24 +36,26 @@ def stats():
     user_id = user.get("providerId")[0]
     # user_id = "UCPgQs00LJYcATD0Uf7naPwA"
     user_name = user.get("displayName")[0]
-
-    ranking_data = get_ranking(channel_id)
-    oldest_data = get_oldest(channel_id)
-    ranking = 0
-    for x in ranking_data:
-        ranking += 1
-        if x[0] == user_id:
-            break
-    old_ranking = 0
-    for y in oldest_data:
-        old_ranking += 1
-        if y[0] == user_id:
-            first_message = y
-            break
-    total_count = len(oldest_data)
-    first_stream_dt = datetime.fromtimestamp(int(float(first_message[3])))
-    ago = datetime.now() - first_stream_dt
-    return f"{user_name} is ranked #{ranking} in chat with {x[4]} messages. Their first message was on stream that was streamed {ago.days} days ago. and {old_ranking}/{total_count} member to this cult."
+    try:
+        return " "
+    finally:
+        ranking_data = get_ranking(channel_id)
+        oldest_data = get_oldest(channel_id)
+        ranking = 0
+        for x in ranking_data:
+            ranking += 1
+            if x[0] == user_id:
+                break
+        old_ranking = 0
+        for y in oldest_data:
+            old_ranking += 1
+            if y[0] == user_id:
+                first_message = y
+                break
+        total_count = len(oldest_data)
+        first_stream_dt = datetime.fromtimestamp(int(float(first_message[3])))
+        ago = datetime.now() - first_stream_dt
+        requests.post(response_url, data={"message": f"{user_name} is ranked #{ranking} in chat with {ranking_data[ranking-1][4]} messages. Their first message was on stream that was streamed {ago.days} days ago. and {old_ranking}/{total_count} member to this cult."})
 
 
 def get_oldest(channel_id: str):
@@ -109,12 +104,14 @@ async def youngest(query=None):
         string += f"{str(counter)}.{str(x[1])}: {ago} hours ago.  "
         counter += 1
     if len(string) > 200:
-        await asyncio.sleep(5)
-        parts = [string[i : i + 200] for i in range(0, len(string), 200)]
-        for part in parts:
-            requests.post(response_url, data={"message": part})
+        try:
+            return string[:200]
+        finally:
             await asyncio.sleep(5)
-        return " "
+            parts = [string[i : i + 200] for i in range(200, len(string), 200)]
+            for part in parts:
+                requests.post(response_url, data={"message": part})
+                await asyncio.sleep(5)
     else:
         return string
 
@@ -148,12 +145,15 @@ async def oldest(query=None):
         string += f"{str(counter)}.{str(x[1])}: {ago} days ago. "
         counter += 1
     if len(string) > 200:
-        await asyncio.sleep(5)
-        parts = [string[i : i + 200] for i in range(0, len(string), 200)]
-        for part in parts:
-            requests.post(response_url, data={"message": part})
+        try:
+            return string[:200]
+        finally:
             await asyncio.sleep(5)
-        return " "
+            parts = [string[i : i + 200] for i in range(200, len(string), 200)]
+            for part in parts:
+                requests.post(response_url, data={"message": part})
+                await asyncio.sleep(5)
+            return " "
     else:
         return string
 
@@ -182,7 +182,7 @@ async def top(query=None):
     string = ""
     counter = 1
     for x in data[0:query]:
-        string += f"{str(counter)}.{str(x[1])}: {str(x[2])}.  "
+        string += f"{str(counter)}.{str(x[1])}: {str(x[4])}.  "
         counter += 1
     if len(string) > 200:
         # split the string into parts of 200 characters and send it to request_url
