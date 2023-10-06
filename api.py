@@ -101,7 +101,6 @@ def streak():
         if stream not in data:
             break
         count += 1
-        print(f"Present in {stream}")
     return f"@{user_name} {count} streams in a row. You were present in {present_in}/{total_streams} streams."
 
 @app.get("/youngest/<query>")
@@ -231,11 +230,11 @@ def wordcount(word: str = None):
         channel = parse_qs(request.headers["Nightbot-Channel"])
     except KeyError:
         return "Not able to auth"
-
+    word = word.lower()
     channel_id = channel.get("providerId")[0]
     # Find all the queries as count that have the word in it
     cursor.execute(
-        f"SELECT * FROM {channel_id} WHERE message_content LIKE ?", (f"%{word}%",)
+        f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ?", (f"%{word}%",)
     )
     data = cursor.fetchall()
     conn.commit()
@@ -247,6 +246,7 @@ def wordcount(word: str = None):
 def firstsaid(word: str = None):
     if not word:
         return "Please pass a word(s) to count for."
+    word = word.lower()
     try:
         channel = parse_qs(request.headers["Nightbot-Channel"])
         response_url = request.headers["Nightbot-Response-Url"]
@@ -257,7 +257,7 @@ def firstsaid(word: str = None):
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
     # Find all the queries as count that have the word in it
     cursor.execute(
-        f"SELECT * FROM {channel_id} WHERE message_content LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
+        f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
         (f"%{word}%",),
     )
     data = cursor.fetchall()
