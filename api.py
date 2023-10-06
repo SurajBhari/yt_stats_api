@@ -85,17 +85,23 @@ def streak():
         "-", "_"
     )  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_name = user.get("displayName")[0]
-    cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id}")
+    cursor.execute(f"SELECT stream_id, MIN(message_origin_time) AS minimum_message_origin_time FROM {channel_id} GROUP BY stream_id;")
     streams = cursor.fetchall()
+    # sort the streams by time
+    streams.sort(key=lambda x: x[1])
+    streams = [x[0] for x in streams]
     count = 0
     cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id} WHERE user_id = '{user_id}'")
     data = cursor.fetchall()
+    data = [x[0] for x in data]
     present_in = len(data)
     total_streams = len(streams)
-    for i in range(len(streams)):
-        if streams[i] != data[i]:
+    for stream in streams[::-1]:
+        print(stream,data)
+        if stream not in data:
             break
         count += 1
+        print(f"Present in {stream}")
     return f"@{user_name} {count} streams in a row. You were present in {present_in}/{total_streams} streams."
 
 @app.get("/youngest/<query>")
