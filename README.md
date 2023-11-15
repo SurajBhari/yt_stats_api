@@ -1,35 +1,35 @@
 # yt_stats_api
 ![Refresh ytstats](https://cronitor.io/badges/iBsIeh/production/8E7fTxi5f5-KsWy0k5D4-74vS_A.svg) </br>
-You can see [Operational Status here.](https://suraj.cronitorstatus.com/)
 
-This is a better version of my previously made yt_chat_arranger </br>
-who knew json are not good storage when you are storing this much of data ? 
-use sql insted
+Check the [Operational Status here.](https://suraj.cronitorstatus.com/)
 
-I am currently running the refresher for the streamers mentioned in the badge above
+This improved version, yt_stats_api, surpasses its predecessor, yt_chat_arranger. Realizing the limitations of using JSON for storing substantial data, it has transitioned to a more robust SQL storage solution.
 
-if you wanna host it yourself. you can 
-have a cron job entry for something like </br>
-`python3 main.py -c UCLcNciLKdI380VqdpDlIbxw` </br>
+Currently, the refresher is operational for the streamers mentioned in the badge above. If you wish to host it yourself, consider setting up a cron job with a command like:</br>
+```python
+python3 main.py -c UCLcNciLKdI380VqdpDlIbxw
+```
+You can queue multiple queries sequentially to avoid overwhelming the source or crashing the SQL connection.</br>
+```python
+python3 main.py -c UCbZZmB8L3IEHutGbvpWo9Ow && python3 main.py -c UCLcNciLKdI380VqdpDlIbxw
+```
 
+Running `api.py` exposes three gateways on port 5000:
 
-you can put the query in queue by doing something like</br> `python3 main.py -c UCbZZmB8L3IEHutGbvpWo9Ow && python3 main.py -c UCLcNciLKdI380VqdpDlIbxw` </br>
-so it go one by one. instead of going parallely and limiting the source/crash the sql connection
+1. **`/stats`**: Automatically returns the stats for the person who queried it. For privacy reasons, only the person who queried and Nightbot can access the data.
 
-running api.py will expose 3 gateway on port 5000 </br>
+2. **`/top`**: Returns the top 10 chatters in the chat in string format. To get more, you can use `/top/20`, for example, to get the top 20. The request is automatically denied if you input anything other than a number.
 
+3. **`/wordcount/<word>`**: Returns the number of times a message with the specified "word" was sent in the chat. It is case-insensitive.
 
-`/stats` this automatically returns the stats for the person who queried for it. for privacy reason only the person who queried can have the data. + from nightbot only for the time being. 
+For NightBot integration:
 
-`/top` this returns top 10 chatters in the chat in a string format. if you want more you can pass something like `/top/20` to get top 20. this automatically denies the request if you put anything other than a number say for `/top/what` will return immediatly. i have decided top 20 because its nice and doesn't spam the chat. 
-
-`/wordcount/<word>` returns the number of times a message was sent in chat with that "word" in it. case insensitive. not passing word will return immediatly.
-
-as for NightBot 
-you can use </br>
-`!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))` </br>
-`!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)` </br>
-`!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))` </br>
-`!addcom !oldest $(urlfetch http://surajbhari.info:5000/oldest/$(query))` </br>
-`!addcom !youngest $(urlfetch http://surajbhari.info:5000/youngest/$(query))` </br>
-`!addcom !firstsaid $(urlfetch http://surajbhari.info:5000/firstsaid/$(querystring))` </br>
+```bash
+!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))
+!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)
+!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))
+!addcom !oldest $(urlfetch http://surajbhari.info:5000/oldest/$(query))
+!addcom !youngest $(urlfetch http://surajbhari.info:5000/youngest/$(query))
+!addcom !firstsaid $(urlfetch http://surajbhari.info:5000/firstsaid/$(querystring))
+```
+Feel free to explore the enhanced functionalities of yt_stats_api!
