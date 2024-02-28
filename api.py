@@ -59,15 +59,17 @@ def stats():
 
 def get_oldest(channel_id: str):
     query = f"SELECT user_id, user_name, stream_id, message_origin_time, MIN(message_origin_time) AS first_message_time, message_content FROM {channel_id} GROUP BY user_id ORDER BY first_message_time ASC;"
-    cursor.execute(query)
-    data = cursor.fetchall()
+    with conn:
+        cursor.execute(query)
+        data = cursor.fetchall()
     return data
 
 
 def get_ranking(channel_id: str):
     query = f"SELECT user_id, user_name, stream_id, message_origin_time, COUNT(*) as num_messages FROM {channel_id} GROUP BY user_id ORDER BY num_messages DESC;"
-    cursor.execute(query)
-    data = cursor.fetchall()
+    with conn:
+        cursor.execute(query)
+        data = cursor.fetchall()
     return data
 
 @app.get("/streak")
@@ -85,14 +87,16 @@ def streak():
         "-", "_"
     )  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_name = user.get("displayName")[0]
-    cursor.execute(f"SELECT stream_id, MIN(message_origin_time) AS minimum_message_origin_time FROM {channel_id} GROUP BY stream_id;")
-    streams = cursor.fetchall()
+    with conn:
+        cursor.execute(f"SELECT stream_id, MIN(message_origin_time) AS minimum_message_origin_time FROM {channel_id} GROUP BY stream_id;")
+        streams = cursor.fetchall()
     # sort the streams by time
     streams.sort(key=lambda x: x[1])
     streams = [x[0] for x in streams]
     count = 0
-    cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id} WHERE user_id = '{user_id}'")
-    data = cursor.fetchall()
+    with conn:
+        cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id} WHERE user_id = '{user_id}'")
+        data = cursor.fetchall()
     data = [x[0] for x in data]
     present_in = len(data)
     total_streams = len(streams)
@@ -233,11 +237,12 @@ def wordcount(word: str = None):
     word = word.lower()
     channel_id = channel.get("providerId")[0]
     # Find all the queries as count that have the word in it
-    cursor.execute(
-        f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ?", (f"%{word}%",)
-    )
-    data = cursor.fetchall()
-    conn.commit()
+    with conn:
+        cursor.execute(
+            f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ?", (f"%{word}%",)
+        )
+        data = cursor.fetchall()
+        conn.commit()
     return f"'{word}' has been said {len(data)} times in chat."
 
 
@@ -256,12 +261,13 @@ def firstsaid(word: str = None):
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
     # Find all the queries as count that have the word in it
-    cursor.execute(
-        f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
-        (f"%{word}%",),
-    )
-    data = cursor.fetchall()
-    conn.commit()
+    with conn:
+        cursor.execute(
+            f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
+            (f"%{word}%",),
+        )
+        data = cursor.fetchall()
+        conn.commit()
     if len(data) == 0:
         return f"'{word}' has never been said in chat."
 
