@@ -25,6 +25,7 @@ Running `api.py` exposes three gateways on port 5000:
 For NightBot integration:
 
 ```bash
+!addcom !streak $(urlfetch http://surajbhari.info:5000/streak)
 !addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))
 !addcom !stats $(urlfetch http://surajbhari.info:5000/stats)
 !addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))
