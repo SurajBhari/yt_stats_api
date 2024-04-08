@@ -45,7 +45,7 @@ x = stream_ids
 stream_ids = []
 stream_ids = [y[0] for y in x]
 print(stream_ids)
-videos = [vid for vid in vids if vid["videoId"] not in stream_ids]
+videos = [vid for vid in vids if vid["videoId"] not in stream_ids and vid["thumbnailOverlays"][0]["thumbnailOverlayTimeStatusRenderer"]["style"] != "LIVE"]
 
 processed_count = 0
 
