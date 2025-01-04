@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--Channel", help="Channel ID")
 args = parser.parse_args()
 if not args.Channel:
-    channel_id = str(input("Enter Channel ID"))
+    channel_id = str(input("Enter Channel ID "))
 else:
     channel_id = args.Channel
 errorss = ""
@@ -18,27 +18,23 @@ errorss = ""
 
 import sqlite3
 
-conn = sqlite3.connect("database.db")
+conn = sqlite3.connect(channel_id+".db", check_same_thread=False) # we perform now on  per channel database model. 
 cursor = conn.cursor()
 
 
 vids = scrapetube.get_channel(channel_id, content_type="streams")
-print(channel_id)
-channel_id = channel_id.replace(
-    "-", "_"
-)  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
 cursor.execute(
-    f"CREATE TABLE IF NOT EXISTS {channel_id} (stream_id varchar(255), user_id varchar(255), user_name varchar(255), user_avatar varchar(255),  message_timestamp varchar(255), message_origin_time varchar(255), message_content varchar(255))"
+    f"CREATE TABLE IF NOT EXISTS CHATS (stream_id varchar(255), user_id varchar(255), user_name varchar(255), user_avatar varchar(255),  message_timestamp varchar(255), message_origin_time varchar(255), message_content varchar(255))"
 )
 conn.commit()
 
 """
 for vid in video_ids_list:
     for x in range(5):
-        cursor.execute(f"INSERT INTO {channel_id} (stream_id) VALUES ('{vid}')")
+        cursor.execute(f"INSERT INTO CHATS (stream_id) VALUES ('{vid}')")
     conn.commit()"""
 
-cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id}")
+cursor.execute(f"SELECT DISTINCT stream_id FROM CHATS")
 stream_ids = cursor.fetchall()
 
 x = stream_ids
@@ -85,7 +81,7 @@ for vid in videos:
         except Exception as e:
             continue
         cursor.execute(
-            f"INSERT INTO {channel_id} (stream_id, user_id, user_name, user_avatar, message_timestamp, message_origin_time, message_content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            f"INSERT INTO CHATS (stream_id, user_id, user_name, user_avatar, message_timestamp, message_origin_time, message_content) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 stream_id,
                 user_id,

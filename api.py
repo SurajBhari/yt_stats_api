@@ -1,4 +1,5 @@
 from flask import Flask, request
+import os 
 from json import load
 import sqlite3
 from datetime import datetime, timedelta
@@ -6,16 +7,48 @@ from urllib.parse import parse_qs
 import requests
 import asyncio
 import time
+import humanize
+
 
 app = Flask(__name__)
+
 
 conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
+no_data_str = "We don't have data of this channel. please contact AG at http://discord.surajbhari.info"
 
 @app.get("/")
 def main():
-    return "if you are reading this. then stats are working fine."
+    try:
+        channel = parse_qs(request.headers['Nightbot-Channel'])
+        channel_id = channel.get("providerId")[0]
+    except KeyError:
+        channel = None
+        channel_id = None
+    if channel:
+        if channel_id+".db" not in os.listdir("."):
+            channel = None
+            channel_id = None 
+            # this implies this channel never had any data
+            
+    if not channel:
+        return "if you are reading this. then stats are working fine."
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
+    with conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM CHATS ORDER BY message_origin_time DESC LIMIT 1;")
+        data = cursor.fetchall()
+        if not data:
+            date = "No chats"
+        else:
+            data = data[0] # only care about first row.
+            now = datetime.now()
+            last_message_time = datetime.fromtimestamp(float(data[5]))
+            relative = now - last_message_time
+            date = humanize.naturaltime(relative)
+    return f"If you are reading this. then stats are working fine. and last known message is {date}."
+
 
 
 @app.get("/stats")
@@ -30,14 +63,14 @@ def stats():
 
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace(
-        "-", "_"
-    )  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_id = user.get("providerId")[0]
     # user_id = "UCPgQs00LJYcATD0Uf7naPwA"
     user_name = user.get("displayName")[0]
-    ranking_data = get_ranking(channel_id)
-    oldest_data = get_oldest(channel_id)
+    try:
+        ranking_data = get_ranking(channel_id)
+        oldest_data = get_oldest(channel_id)
+    except ValueError:
+        return no_data_str
     ranking = 0
     for x in ranking_data:
         ranking += 1
@@ -58,16 +91,24 @@ def stats():
 
 
 def get_oldest(channel_id: str):
-    query = f"SELECT user_id, user_name, stream_id, message_origin_time, MIN(message_origin_time) AS first_message_time, message_content FROM {channel_id} GROUP BY user_id ORDER BY first_message_time ASC;"
+    if channel_id+".db" not in os.listdir("."):
+        raise ValueError
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
+    query = f"SELECT user_id, user_name, stream_id, message_origin_time, MIN(message_origin_time) AS first_message_time, message_content FROM CHATS GROUP BY user_id ORDER BY first_message_time ASC;"
     with conn:
+        cursor = conn.cursor()
         cursor.execute(query)
         data = cursor.fetchall()
     return data
 
 
 def get_ranking(channel_id: str):
-    query = f"SELECT user_id, user_name, stream_id, message_origin_time, COUNT(*) as num_messages FROM {channel_id} GROUP BY user_id ORDER BY num_messages DESC;"
+    if channel_id+".db" not in os.listdir("."):
+        raise ValueError
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
+    query = f"SELECT user_id, user_name, stream_id, message_origin_time, COUNT(*) as num_messages FROM CHATS GROUP BY user_id ORDER BY num_messages DESC;"
     with conn:
+        cursor = conn.cursor()
         cursor.execute(query)
         data = cursor.fetchall()
     return data
@@ -83,19 +124,20 @@ def streak():
     user_id = user['providerId'][0]
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace(
-        "-", "_"
-    )  # YT is weird with channel ids. some have - in them. but sql tables cant have - in them. so we replace it with _
     user_name = user.get("displayName")[0]
+    if channel_id+".db" not in os.listdir("."):
+        return no_data_str
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
     with conn:
-        cursor.execute(f"SELECT stream_id, MIN(message_origin_time) AS minimum_message_origin_time FROM {channel_id} GROUP BY stream_id;")
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT stream_id, MIN(message_origin_time) AS minimum_message_origin_time FROM CHATS GROUP BY stream_id;")
         streams = cursor.fetchall()
     # sort the streams by time
     streams.sort(key=lambda x: x[1])
     streams = [x[0] for x in streams]
     count = 0
     with conn:
-        cursor.execute(f"SELECT DISTINCT stream_id FROM {channel_id} WHERE user_id = '{user_id}'")
+        cursor.execute(f"SELECT DISTINCT stream_id FROM CHATS WHERE user_id = '{user_id}'")
         data = cursor.fetchall()
     data = [x[0] for x in data]
     present_in = len(data)
@@ -126,11 +168,13 @@ async def youngest(query=None):
     
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace("-", "_")
+    try:
+        data = get_oldest(channel_id)
+    except ValueError:
+        return no_data_str
     try:
         return "Sorry, for spam!"
     finally:
-        data = get_oldest(channel_id)
         string = ""
         counter = 1
         x = query * -1 - 1
@@ -168,8 +212,10 @@ async def oldest(query=None):
 
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace("-", "_")
-    data = get_oldest(channel_id)
+    try:
+        data = get_oldest(channel_id)
+    except ValueError:
+        return no_data_str
     string = ""
     counter = 1
     for x in data[0:query]:
@@ -206,9 +252,10 @@ async def top(query=None):
         return "Not able to auth"
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
-    channel_id = channel_id.replace("-", "_")
-
-    data = get_ranking(channel_id)
+    try:
+        data = get_ranking(channel_id)
+    except ValueError:
+        return no_data_str
     string = ""
     counter = 1
     for x in data[0:query]:
@@ -236,10 +283,14 @@ def wordcount(word: str = None):
         return "Not able to auth"
     word = word.lower()
     channel_id = channel.get("providerId")[0]
+    if channel_id+".db" not in os.listdir("."):
+        return no_data_str
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
     # Find all the queries as count that have the word in it
     with conn:
+        cursor = conn.cursor()
         cursor.execute(
-            f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ?", (f"%{word}%",)
+            f"SELECT * FROM CHATS WHERE LOWER(message_content) LIKE ?", (f"%{word}%",)
         )
         data = cursor.fetchall()
         conn.commit()
@@ -261,9 +312,13 @@ def firstsaid(word: str = None):
     channel_id = channel.get("providerId")[0]
     # channel_id = "UCIzzPhdRf8Olo3WjiexcZSw"
     # Find all the queries as count that have the word in it
+    if channel_id+".db" not in os.listdir("."):
+        return no_data_str
+    conn = sqlite3.connect(channel_id+".db", check_same_thread=False)
     with conn:
+        cursor = conn.cursor()
         cursor.execute(
-            f"SELECT * FROM {channel_id} WHERE LOWER(message_content) LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
+            f"SELECT * FROM CHATS WHERE LOWER(message_content) LIKE ? ORDER BY message_origin_time ASC LIMIT 1 ",
             (f"%{word}%",),
         )
         data = cursor.fetchall()
