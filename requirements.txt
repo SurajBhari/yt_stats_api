@@ -1,3 +1,5 @@
 chat_downloader
 scrapetube
 flask
+humanize
+flask[async] 
