@@ -16,7 +16,7 @@ app = Flask(__name__)
 conn = sqlite3.connect("database.db", check_same_thread=False)
 cursor = conn.cursor()
 
-no_data_str = "We don't have data of this channel. please contact AG at http://discord.surajbhari.info"
+no_data_str = "We don't have data of this channel. please contact Your admin"
 
 @app.get("/")
 def main():
