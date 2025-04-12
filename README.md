@@ -25,12 +25,12 @@ Running `api.py` exposes three gateways on port 5000:
 For NightBot integration:
 
 ```bash
-!addcom !streak $(urlfetch http://surajbhari.info:5000/streak)
-!addcom !top $(urlfetch http://surajbhari.info:5000/top/$(query))
-!addcom !stats $(urlfetch http://surajbhari.info:5000/stats)
-!addcom !wordcount $(urlfetch http://surajbhari.info:5000/wordcount/$(querystring))
-!addcom !oldest $(urlfetch http://surajbhari.info:5000/oldest/$(query))
-!addcom !youngest $(urlfetch http://surajbhari.info:5000/youngest/$(query))
-!addcom !firstsaid $(urlfetch http://surajbhari.info:5000/firstsaid/$(querystring))
+!addcom !streak $(urlfetch <your_ip>/streak)
+!addcom !top $(urlfetch <your_ip>/top/$(query))
+!addcom !stats $(urlfetch <your_ip>/stats)
+!addcom !wordcount $(urlfetch <your_ip>/wordcount/$(querystring))
+!addcom !oldest $(urlfetch <your_ip>/oldest/$(query))
+!addcom !youngest $(urlfetch <your_ip>/youngest/$(query))
+!addcom !firstsaid $(urlfetch <your_ip>/firstsaid/$(querystring))
 ```
 Feel free to explore the enhanced functionalities of yt_stats_api!
