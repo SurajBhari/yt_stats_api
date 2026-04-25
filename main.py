@@ -152,8 +152,9 @@ def main():
             print("No approved channels found in database.")
             return
         
+        random.shuffle(channels)
         print(f"Found {len(channels)} approved channels to process.")
-        for channel_id in random.shuffle(channels):
+        for channel_id in channels:
             process_channel(channel_id, max_workers=max_workers)
 
 if __name__ == "__main__":
