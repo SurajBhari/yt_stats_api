@@ -12,6 +12,7 @@ import humanize
 import scrapetube
 from db import db
 from config import config
+import json
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = config.SECRET_KEY
@@ -109,6 +110,10 @@ def login_admin():
             db.return_connection(conn)
     flash("Invalid admin password")
     return redirect(url_for('login'))
+
+@app.route("/@me")
+def me():
+    return json.dumps(current_user.__dict__, indent=4)
 
 @app.route("/login/google/authorized")
 def google_callback():
