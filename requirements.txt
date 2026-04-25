@@ -3,3 +3,4 @@ scrapetube
 flask
 humanize
 flask[async] 
+psycopg2-binary
