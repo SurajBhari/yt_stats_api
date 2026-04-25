@@ -142,8 +142,8 @@ def main():
     
     args = parser.parse_args()
 
-    max_workers = args.threads
-
+    max_workers = int(args.threads)
+    print(f"Using {max_workers} threads.")
     if args.Channel:
         process_channel(args.Channel, max_workers=max_workers)
     else:
