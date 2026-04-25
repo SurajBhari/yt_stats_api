@@ -407,70 +407,68 @@
     <section class="section" id="capabilities">
         <div class="section-title">
             <h2>Powerful Commands</h2>
-            <p>Integrated seamlessly with Nightbot or any webfetch-capable bot.</p>
+            <p>Integrated seamlessly with Nightbot or any webfetch-capable bot. Click the command to copy.</p>
         </div>
         <div class="grid">
             <div class="card">
                 <i class="fa-solid fa-chart-line"></i>
                 <h3>User Stats</h3>
                 <p>Detailed ranking and history for any user in your chat.</p>
-                <code>!stats</code>
+                <div class="install-cmd">
+                    <code>!addcom !stats $(urlfetch https://stats.streamsnip.com/stats)</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !stats $(urlfetch https://stats.streamsnip.com/stats)')">Copy</button>
+                </div>
                 <p class="example">"User is ranked #42 with 1,234 messages. First seen 150 days ago."</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-trophy"></i>
                 <h3>Top Rankings</h3>
                 <p>Showcase the most active members of your community.</p>
-                <code>!top 5</code>
+                <div class="install-cmd">
+                    <code>!addcom !top $(urlfetch https://stats.streamsnip.com/top/$(query))</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !top $(urlfetch https://stats.streamsnip.com/top/$(query))')">Copy</button>
+                </div>
                 <p class="example">"1. UserA: 5000 | 2. UserB: 4500..."</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-fire"></i>
                 <h3>Stream Streaks</h3>
                 <p>Track consecutive stream attendance for users.</p>
-                <code>!streak</code>
+                <div class="install-cmd">
+                    <code>!addcom !streak $(urlfetch https://stats.streamsnip.com/streak)</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !streak $(urlfetch https://stats.streamsnip.com/streak)')">Copy</button>
+                </div>
                 <p class="example">"@User is on a 15 stream streak! Present in 45/50 total streams."</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <h3>Word Search</h3>
                 <p>Find when a word was first said or how many times.</p>
-                <code>!wordcount "pog"</code>
+                <div class="install-cmd">
+                    <code>!addcom !wordcount $(urlfetch https://stats.streamsnip.com/wordcount/$(querystring))</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !wordcount $(urlfetch https://stats.streamsnip.com/wordcount/$(querystring))')">Copy</button>
+                </div>
                 <p class="example">"'pog' has been said 15,234 times in chat."</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-clock-rotate-left"></i>
                 <h3>The First Time</h3>
                 <p>Find the exact moment and person who first said a word.</p>
-                <code>!firstsaid "hello"</code>
+                <div class="install-cmd">
+                    <code>!addcom !firstsaid $(urlfetch https://stats.streamsnip.com/firstsaid/$(querystring))</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !firstsaid $(urlfetch https://stats.streamsnip.com/firstsaid/$(querystring))')">Copy</button>
+                </div>
                 <p class="example">"'hello' was first said by UserX 200 days ago. [Link]"</p>
             </div>
             <div class="card">
                 <i class="fa-solid fa-hourglass-start"></i>
                 <h3>The OG Cult</h3>
                 <p>List the absolute first members who joined your chat.</p>
-                <code>!oldest 5</code>
+                <div class="install-cmd">
+                    <code>!addcom !oldest $(urlfetch https://stats.streamsnip.com/oldest/$(query))</code>
+                    <button class="copy-btn" onclick="copyText('!addcom !oldest $(urlfetch https://stats.streamsnip.com/oldest/$(query))')">Copy</button>
+                </div>
                 <p class="example">"1. UserA: 500 days ago | 2. UserB: 498 days ago..."</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="section" id="install">
-        <div class="section-title">
-            <h2>How to Install</h2>
-            <p>Setting up is as simple as copying these commands into your chat.</p>
-        </div>
-        <div class="card" style="max-width: 800px; margin: 0 auto; text-align: left;">
-            <p style="margin-bottom: 20px;">Copy and paste these commands into your YouTube or Twitch chat where Nightbot is an editor:</p>
-            <div style="position: relative;">
-                <code style="white-space: pre-wrap; word-break: break-all; padding: 20px; font-size: 0.8rem; line-height: 2;">!addcom !streak $(urlfetch https://stats.streamsnip.com/streak)
-!addcom !top $(urlfetch https://stats.streamsnip.com/top/$(query))
-!addcom !stats $(urlfetch https://stats.streamsnip.com/stats)
-!addcom !wordcount $(urlfetch https://stats.streamsnip.com/wordcount/$(querystring))
-!addcom !oldest $(urlfetch https://stats.streamsnip.com/oldest/$(query))
-!addcom !youngest $(urlfetch https://stats.streamsnip.com/youngest/$(query))
-!addcom !firstsaid $(urlfetch https://stats.streamsnip.com/firstsaid/$(querystring))</code>
-                <button class="btn btn-outline" style="position: absolute; top: 10px; right: 10px; padding: 5px 15px; font-size: 0.7rem;" onclick="copyCommands()">Copy All</button>
             </div>
         </div>
     </section>
@@ -591,17 +589,17 @@
             }
         }
 
-        function copyCommands() {
-            const code = document.querySelector('#install code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
                 const notify = document.getElementById('notification');
-                notify.textContent = "Commands copied to clipboard!";
+                notify.textContent = "Command copied to clipboard!";
                 notify.style.background = '#2ECC71';
                 notify.classList.add('show');
                 setTimeout(() => notify.classList.remove('show'), 3000);
             });
         }
     </script>
+
 
 
 </body>
