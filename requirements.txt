@@ -4,3 +4,6 @@ flask
 humanize
 flask[async] 
 psycopg2-binary
+flask-login
+flask-dance
+sqlalchemy

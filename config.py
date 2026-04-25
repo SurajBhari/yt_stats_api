@@ -10,7 +10,15 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "5432")
-    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "admin123") # Change this in production
+    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "admin123")
+    SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-me")
+    
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    
+    # Admin Credentials
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123") # For form login
 
     @property
     def DATABASE_URL(self):

@@ -66,6 +66,27 @@ class Database:
                     );
                     CREATE INDEX IF NOT EXISTS idx_channel_status ON channels(status);
                 """)
+
+                # Table for users
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT UNIQUE NOT NULL,
+                        name TEXT,
+                        role TEXT DEFAULT 'user', -- admin, user
+                        google_id TEXT UNIQUE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
+                
+                # Seed admin user if not exists
+                cursor.execute("SELECT 1 FROM users WHERE role = 'admin'")
+                if not cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO users (email, name, role) VALUES (%s, %s, %s)",
+                        ("admin@stats.com", "System Admin", "admin")
+                    )
+                
                 conn.commit()
         finally:
             self.return_connection(conn)

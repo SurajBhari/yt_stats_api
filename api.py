@@ -1,4 +1,6 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_dance.contrib.google import make_google_blueprint, google
 import os 
 from json import load
 from datetime import datetime, timedelta
@@ -12,11 +14,45 @@ from db import db
 from config import config
 
 app = Flask(__name__, template_folder='templates')
+app.secret_key = config.SECRET_KEY
 
 # Ensure DB is initialized
 db.init_db()
 
-no_data_str = "We don't have data of this channel. please contact AG at http://discord.surajbhari.com"
+# --- Login Management ---
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+class User(UserMixin):
+    def __init__(self, id, email, name, role):
+        self.id = id
+        self.email = email
+        self.name = name
+        self.role = role
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT id, email, name, role FROM users WHERE id = %s", (user_id,))
+            data = cursor.fetchone()
+            if data:
+                return User(*data)
+    finally:
+        db.return_connection(conn)
+    return None
+
+# --- Google OAuth ---
+
+google_bp = make_google_blueprint(
+    client_id=config.GOOGLE_CLIENT_ID,
+    client_secret=config.GOOGLE_CLIENT_SECRET,
+    scope=["profile", "email"]
+)
+app.register_blueprint(google_bp, url_prefix="/login")
 
 # --- Helper Functions ---
 
@@ -37,9 +73,77 @@ def get_user_info():
     except Exception:
         return None, None
 
-def check_admin():
-    auth = request.headers.get('Authorization')
-    return auth == config.ADMIN_SECRET
+def is_admin():
+    return current_user.is_authenticated and current_user.role == 'admin'
+
+# --- Auth Routes ---
+
+@app.route("/login")
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    return render_template("login.html")
+
+@app.route("/login/admin", methods=["POST"])
+def login_admin():
+    password = request.form.get("password")
+    if password == config.ADMIN_PASSWORD:
+        conn = db.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id, email, name, role FROM users WHERE role = 'admin' LIMIT 1")
+                data = cursor.fetchone()
+                if data:
+                    user = User(*data)
+                    login_user(user)
+                    return redirect(url_for('admin_page'))
+        finally:
+            db.return_connection(conn)
+    flash("Invalid admin password")
+    return redirect(url_for('login'))
+
+@app.route("/login/google/callback")
+def google_callback():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    
+    resp = google.get("/oauth2/v2/userinfo")
+    if not resp.ok:
+        return "Failed to fetch user info from Google."
+    
+    info = resp.json()
+    google_id = info["id"]
+    email = info["email"]
+    name = info.get("name")
+
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            # Check if user exists
+            cursor.execute("SELECT id, email, name, role FROM users WHERE google_id = %s", (google_id,))
+            data = cursor.fetchone()
+            
+            if not data:
+                # Create new user
+                cursor.execute(
+                    "INSERT INTO users (email, name, google_id) VALUES (%s, %s, %s) RETURNING id, email, name, role",
+                    (email, name, google_id)
+                )
+                data = cursor.fetchone()
+                conn.commit()
+            
+            user = User(*data)
+            login_user(user)
+    finally:
+        db.return_connection(conn)
+    
+    return redirect(url_for("index"))
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("index"))
 
 # --- Frontend Routes ---
 
@@ -48,7 +152,10 @@ def index():
     return render_template("index.html")
 
 @app.get("/admin")
+@login_required
 def admin_page():
+    if current_user.role != 'admin':
+        return "Access Denied: Admins Only", 403
     return render_template("admin.html")
 
 # --- Tracking API ---
@@ -60,22 +167,16 @@ def search_channels():
         return jsonify([])
     
     try:
-        # Using get_search as per the correct scrapetube API
         results = scrapetube.get_search(query, results_type="channel", limit=10)
         channels = []
         for res in results:
             try:
-                # Extracting data from the search result object
                 channel_id = res['channelId']
                 title = res['title']['simpleText']
-                
-                # Handle thumbnails and protocol-relative URLs
                 thumbnails = res.get('thumbnail', {}).get('thumbnails', [])
                 thumbnail = thumbnails[-1]['url'] if thumbnails else ""
                 if thumbnail.startswith('//'):
                     thumbnail = 'https:' + thumbnail
-                
-                # Extract subscriber count and handle (@username)
                 subscribers = res.get('videoCountText', {}).get('simpleText', '')
                 handle = res.get('subscriberCountText', {}).get('simpleText', '')
                 
@@ -86,7 +187,7 @@ def search_channels():
                     "subscribers": subscribers,
                     "handle": handle
                 })
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError):
                 continue
         return jsonify(channels)
     except Exception as e:
@@ -94,6 +195,7 @@ def search_channels():
         return jsonify({"error": str(e)}), 500
 
 @app.post("/api/request-track")
+@login_required
 def request_track():
     data = request.json
     channel_id = data.get("channel_id")
@@ -105,7 +207,6 @@ def request_track():
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
-            # Check if exists
             cursor.execute("SELECT status FROM channels WHERE channel_id = %s", (channel_id,))
             exists = cursor.fetchone()
             if exists:
@@ -124,8 +225,9 @@ def request_track():
 # --- Admin API ---
 
 @app.get("/api/admin/channels")
+@login_required
 def list_channels():
-    if not check_admin():
+    if current_user.role != 'admin':
         return jsonify({"message": "Unauthorized"}), 401
     
     conn = db.get_connection()
@@ -134,7 +236,6 @@ def list_channels():
             cursor.execute("SELECT channel_id, channel_name, status, last_updated FROM channels ORDER BY requested_at DESC")
             cols = ["channel_id", "channel_name", "status", "last_updated"]
             data = [dict(zip(cols, row)) for row in cursor.fetchall()]
-            # Format dates
             for d in data:
                 if d["last_updated"]:
                     d["last_updated"] = d["last_updated"].strftime("%Y-%m-%d %H:%M:%S")
@@ -143,8 +244,9 @@ def list_channels():
     return jsonify(data)
 
 @app.post("/api/admin/update-status")
+@login_required
 def update_status():
-    if not check_admin():
+    if current_user.role != 'admin':
         return jsonify({"message": "Unauthorized"}), 401
     
     data = request.json
@@ -162,20 +264,18 @@ def update_status():
 
 # --- Stats API (Nightbot) ---
 
+no_data_str = "We don't have data of this channel. please contact AG at http://discord.surajbhari.com"
+
 @app.get("/stats")
 def stats():
     channel_id = get_channel_info()
     user_id, user_name = get_user_info()
-
     if not channel_id or not user_id:
         return "Not able to auth"
-
     ranking_data = get_ranking_data(channel_id)
     oldest_data = get_oldest_data(channel_id)
-
     if not ranking_data:
         return no_data_str
-
     ranking = 0
     user_rank_data = None
     for i, x in enumerate(ranking_data, 1):
@@ -183,10 +283,8 @@ def stats():
             ranking = i
             user_rank_data = x
             break
-
     if not user_rank_data:
         return f"{user_name} has no recorded messages in this channel."
-
     old_ranking = 0
     first_message = None
     for i, y in enumerate(oldest_data, 1):
@@ -194,11 +292,9 @@ def stats():
             old_ranking = i
             first_message = y
             break
-
     total_count = len(oldest_data)
     first_stream_dt = datetime.fromtimestamp(float(first_message[3]))
     ago = datetime.now() - first_stream_dt
-    
     return f"{user_name} is ranked #{ranking} in chat with {user_rank_data[4]} messages. Their first message was on a stream {ago.days} days ago. Member #{old_ranking}/{total_count} of this cult."
 
 def get_oldest_data(channel_id: str):
@@ -239,10 +335,8 @@ def get_ranking_data(channel_id: str):
 def streak():
     channel_id = get_channel_info()
     user_id, user_name = get_user_info()
-
     if not channel_id or not user_id:
         return "Not able to auth"
-
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
@@ -255,23 +349,18 @@ def streak():
                 GROUP BY stream_id, channel_id
                 ORDER BY min_time ASC;
             """, (user_id, channel_id))
-
             results = cursor.fetchall()
     finally:
         db.return_connection(conn)
-
     if not results:
         return no_data_str
-
     streams = [row[0] for row in results]
     user_presence = {row[0]: row[2] for row in results}
-
     count = 0
     for stream in reversed(streams):
         if not user_presence[stream]:
             break
         count += 1
-
     present_in = sum(1 for row in results if row[2])
     return f"@{user_name} {count} streams in a row. You were present in {present_in}/{len(streams)} streams."
 
@@ -281,14 +370,11 @@ async def youngest(query=None):
     query = min(int(query or 5), 20)
     channel_id = get_channel_info()
     response_url = request.headers.get("Nightbot-Response-Url")
-
     if not channel_id or not response_url:
         return "Not able to auth"
-    
     data = get_oldest_data(channel_id)
     if not data:
         return no_data_str
-
     string = ""
     counter = 1
     for x in data[-query:][::-1]:
@@ -296,7 +382,6 @@ async def youngest(query=None):
         hours_ago = ago.days * 24 + ago.seconds // 3600
         string += f"| {counter}.{x[1]}: {hours_ago} hours ago.  "
         counter += 1
-
     await send_nightbot_response(response_url, string)
     return "Processing youngest members..."
 
@@ -306,19 +391,15 @@ async def oldest(query=None):
     query = min(int(query or 5), 20)
     channel_id = get_channel_info()
     response_url = request.headers.get("Nightbot-Response-Url")
-
     if not channel_id:
         return "Not able to auth"
-
     data = get_oldest_data(channel_id)
     if not data:
         return no_data_str
-
     string = ""
     for i, x in enumerate(data[:query], 1):
         ago = (datetime.now() - datetime.fromtimestamp(float(x[3]))).days
         string += f"{i}.{x[1]}: {ago} days ago. "
-
     if response_url and len(string) > 200:
         await send_nightbot_response(response_url, string)
         return "Processing oldest members..."
@@ -330,18 +411,14 @@ async def top(query=None):
     query = min(int(query or 5), 20)
     channel_id = get_channel_info()
     response_url = request.headers.get("Nightbot-Response-Url")
-
     if not channel_id:
         return "Not able to auth"
-
     data = get_ranking_data(channel_id)
     if not data:
         return no_data_str
-
     string = ""
     for i, x in enumerate(data[:query], 1):
         string += f"{i}.{x[1]}: {x[4]}.  "
-
     if response_url and len(string) > 200:
         await send_nightbot_response(response_url, string)
         return "Processing top members..."
@@ -355,7 +432,6 @@ def wordcount(word: str = None):
     channel_id = get_channel_info()
     if not channel_id:
         return "Not able to auth"
-
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
@@ -366,7 +442,6 @@ def wordcount(word: str = None):
             count = cursor.fetchone()[0]
     finally:
         db.return_connection(conn)
-
     return f"'{word}' has been said {count} times in chat."
 
 @app.get("/firstsaid/")
@@ -377,7 +452,6 @@ def firstsaid(word: str = None):
     channel_id = get_channel_info()
     if not channel_id:
         return "Not able to auth"
-
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
@@ -388,10 +462,8 @@ def firstsaid(word: str = None):
             data = cursor.fetchone()
     finally:
         db.return_connection(conn)
-
     if not data:
         return f"'{word}' has never been said in chat."
-
     ago = (datetime.now() - datetime.fromtimestamp(float(data[3]))).days
     return f"'{word}' was first said by {data[1]} exactly {ago} days ago. https://youtu.be/{data[0]}?t={int(float(data[2]))}"
 

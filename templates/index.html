@@ -344,8 +344,19 @@
 <body>
 
     <section class="hero">
-        <div style="position: absolute; top: 20px; right: 40px;">
-            <a href="/admin" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.75rem;">Admin Dashboard</a>
+        <div style="position: absolute; top: 20px; right: 40px; display: flex; gap: 15px; align-items: center;">
+            {% if current_user.is_authenticated %}
+                <div style="background: var(--glass); padding: 8px 15px; border-radius: 50px; border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-user" style="color: var(--primary);"></i>
+                    <span style="font-size: 0.9rem; font-weight: 500;">{{ current_user.name }}</span>
+                </div>
+                {% if current_user.role == 'admin' %}
+                    <a href="/admin" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.75rem;">Admin Panel</a>
+                {% endif %}
+                <a href="/logout" class="btn btn-outline" style="padding: 10px 20px; font-size: 0.75rem; border-color: rgba(231, 76, 60, 0.3); color: #e74c3c;">Logout</a>
+            {% else %}
+                <a href="/login" class="btn btn-primary" style="padding: 10px 25px; font-size: 0.8rem;">Sign In</a>
+            {% endif %}
         </div>
         <h1>YouTube Stats API</h1>
         <p>Unlock the power of your community. Advanced chat analytics, rankings, and streaks for YouTube live streamers.</p>
@@ -433,16 +444,25 @@
             <p>Search for your channel to start tracking chat analytics.</p>
         </div>
         <div class="search-container">
-            <div class="search-bar-wrapper">
-                <div class="search-bar">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="channelSearch" placeholder="Type your channel name...">
+            {% if current_user.is_authenticated %}
+                <div class="search-bar-wrapper">
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="channelSearch" placeholder="Type your channel name...">
+                    </div>
                 </div>
-            </div>
-            <div id="loading" class="loading-spinner">
-                <i class="fa-solid fa-circle-notch fa-spin"></i>
-            </div>
-            <div id="searchResults"></div>
+                <div id="loading" class="loading-spinner">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                </div>
+                <div id="searchResults"></div>
+            {% else %}
+                <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 30px; border: 1px dashed var(--glass-border);">
+                    <i class="fa-solid fa-lock" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+                    <h3>Login Required</h3>
+                    <p style="margin-bottom: 30px;">You must be signed in to submit tracking requests.</p>
+                    <a href="/login" class="btn btn-primary" style="display: inline-flex; width: auto;">Sign in with Google / Admin</a>
+                </div>
+            {% endif %}
         </div>
     </section>
 
