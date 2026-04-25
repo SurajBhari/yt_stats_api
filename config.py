@@ -10,6 +10,7 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "5432")
+    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "admin123") # Change this in production
 
     @property
     def DATABASE_URL(self):

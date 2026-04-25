@@ -36,6 +36,7 @@ class Database:
         conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
+                # Table for chat messages
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS chats (
                         id SERIAL PRIMARY KEY,
@@ -52,6 +53,18 @@ class Database:
                     CREATE INDEX IF NOT EXISTS idx_channel_id ON chats(channel_id);
                     CREATE INDEX IF NOT EXISTS idx_stream_id ON chats(stream_id);
                     CREATE INDEX IF NOT EXISTS idx_user_id ON chats(user_id);
+                """)
+                
+                # Table for tracked channels
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS channels (
+                        channel_id TEXT PRIMARY KEY,
+                        channel_name TEXT,
+                        status TEXT DEFAULT 'pending', -- pending, approved, disabled
+                        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_updated TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_channel_status ON channels(status);
                 """)
                 conn.commit()
         finally:

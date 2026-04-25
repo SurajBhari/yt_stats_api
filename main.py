@@ -1,22 +1,23 @@
 from chat_downloader import ChatDownloader, errors
 import scrapetube
 from datetime import datetime
-from os import listdir, mkdir
-import json
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from db import db
 from config import config
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--Channel", help="Channel ID")
-args = parser.parse_args()
-
-channel_id = args.Channel if args.Channel else input("Enter Channel ID ")
-
 # Initialize DB
 db.init_db()
+
+def get_approved_channels():
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT channel_id FROM channels WHERE status = 'approved'")
+            return [row[0] for row in cursor.fetchall()]
+    finally:
+        db.return_connection(conn)
 
 def get_existing_stream_ids(channel_id):
     conn = db.get_connection()
@@ -27,18 +28,14 @@ def get_existing_stream_ids(channel_id):
     finally:
         db.return_connection(conn)
 
-existing_stream_ids = get_existing_stream_ids(channel_id)
-
-# Get video list
-vids = scrapetube.get_channel(channel_id, content_type="streams")
-videos = [
-    vid for vid in vids 
-    if vid["videoId"] not in existing_stream_ids and 
-       vid["thumbnailOverlays"][0]["thumbnailOverlayTimeStatusRenderer"]["style"] != "LIVE"
-]
-videos = videos[::-1]
-
-print(f"Found {len(videos)} unprocessed videos.")
+def update_last_updated(channel_id):
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("UPDATE channels SET last_updated = %s WHERE channel_id = %s", (datetime.now(), channel_id))
+            conn.commit()
+    finally:
+        db.return_connection(conn)
 
 # Thread-safe print
 print_lock = threading.Lock()
@@ -95,11 +92,55 @@ def process_video(vid, channel_id):
     with print_lock:
         print(f"[DONE] {stream_id}: Inserted {inserted_count} messages.")
 
-# Thread pool for processing
-with ThreadPoolExecutor(max_workers=4) as executor:
-    futures = [executor.submit(process_video, vid, channel_id) for vid in videos]
-    for i, future in enumerate(as_completed(futures), 1):
-        try:
-            future.result()
-        except Exception as e:
-            print(f"[Thread Error] {e}")
+def process_channel(channel_id):
+    print(f"\nProcessing channel: {channel_id}")
+    existing_stream_ids = get_existing_stream_ids(channel_id)
+    
+    # Get video list
+    try:
+        vids = scrapetube.get_channel(channel_id, content_type="streams")
+        videos = [
+            vid for vid in vids 
+            if vid["videoId"] not in existing_stream_ids and 
+               vid["thumbnailOverlays"][0]["thumbnailOverlayTimeStatusRenderer"]["style"] != "LIVE"
+        ]
+    except Exception as e:
+        print(f"Error fetching videos for {channel_id}: {e}")
+        return
+
+    videos = videos[::-1]
+    print(f"Found {len(videos)} unprocessed videos for {channel_id}.")
+
+    if not videos:
+        update_last_updated(channel_id)
+        return
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(process_video, vid, channel_id) for vid in videos]
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"[Thread Error] {e}")
+    
+    update_last_updated(channel_id)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--Channel", help="Specific Channel ID to process (bypasses DB status)")
+    args = parser.parse_args()
+
+    if args.Channel:
+        process_channel(args.Channel)
+    else:
+        channels = get_approved_channels()
+        if not channels:
+            print("No approved channels found in database.")
+            return
+        
+        print(f"Found {len(channels)} approved channels to process.")
+        for channel_id in channels:
+            process_channel(channel_id)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - YT Stats API</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF0000;
+            --bg: #0F0F0F;
+            --card-bg: #1A1A1A;
+            --text: #FFFFFF;
+            --text-dim: #B0B0B0;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 40px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 { font-size: 2rem; }
+
+        .dashboard-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .channel-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .channel-info h3 { margin-bottom: 5px; }
+        .channel-info p { 
+            font-size: 0.85rem; 
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-approved { background: rgba(46, 204, 113, 0.2); color: #2ECC71; }
+        .status-pending { background: rgba(241, 196, 15, 0.2); color: #F1C40F; }
+        .status-disabled { background: rgba(149, 165, 166, 0.2); color: #95A5A6; }
+
+        .actions { display: flex; gap: 10px; }
+
+        .action-btn {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-approve { background: #2ECC71; color: white; }
+        .btn-disable { background: #E74C3C; color: white; }
+        .btn-enable { background: #3498DB; color: white; }
+
+        .action-btn:hover { opacity: 0.8; transform: translateY(-2px); }
+
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            background: #000;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h2>Admin Login</h2>
+            <input type="password" id="adminKey" placeholder="Enter Admin Secret Key">
+            <button class="action-btn btn-approve" style="width: 100%" onclick="login()">Login</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>Admin Dashboard</h1>
+        <button class="action-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="dashboard-grid" id="channelList">
+        <!-- Loaded via JS -->
+    </div>
+
+    <script>
+        let secretKey = localStorage.getItem('admin_secret');
+        if(secretKey) {
+            document.getElementById('loginOverlay').style.display = 'none';
+            loadChannels();
+        }
+
+        function login() {
+            const key = document.getElementById('adminKey').value;
+            localStorage.setItem('admin_secret', key);
+            secretKey = key;
+            document.getElementById('loginOverlay').style.display = 'none';
+            loadChannels();
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_secret');
+            location.reload();
+        }
+
+        async function loadChannels() {
+            try {
+                const response = await fetch('/api/admin/channels', {
+                    headers: { 'Authorization': secretKey }
+                });
+                if(!response.ok) throw new Error('Unauthorized');
+                
+                const channels = await response.json();
+                const container = document.getElementById('channelList');
+                container.innerHTML = '';
+
+                channels.forEach(ch => {
+                    const row = document.createElement('div');
+                    row.className = 'channel-row';
+                    row.innerHTML = `
+                        <div class="channel-info">
+                            <h3>${ch.channel_name || 'Unnamed Channel'} <span class="status-badge status-${ch.status}">${ch.status}</span></h3>
+                            <p>${ch.channel_id}</p>
+                            <p style="margin-top: 5px; font-size: 0.75rem;">Last Updated: ${ch.last_updated || 'Never'}</p>
+                        </div>
+                        <div class="actions">
+                            ${ch.status === 'pending' ? `<button class="action-btn btn-approve" onclick="updateStatus('${ch.channel_id}', 'approved')">Approve</button>` : ''}
+                            ${ch.status === 'approved' ? `<button class="action-btn btn-disable" onclick="updateStatus('${ch.channel_id}', 'disabled')">Disable</button>` : ''}
+                            ${ch.status === 'disabled' ? `<button class="action-btn btn-enable" onclick="updateStatus('${ch.channel_id}', 'approved')">Enable</button>` : ''}
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch (err) {
+                logout();
+            }
+        }
+
+        async function updateStatus(id, status) {
+            await fetch('/api/admin/update-status', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': secretKey
+                },
+                body: JSON.stringify({ channel_id: id, status: status })
+            });
+            loadChannels();
+        }
+    </script>
+</body>
+</html>
