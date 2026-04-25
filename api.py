@@ -60,22 +60,33 @@ def search_channels():
         return jsonify([])
     
     try:
-        # Get first 10 results
-        results = scrapetube.search(query, content_type="channel", limit=10)
+        # Using get_search as per the correct scrapetube API
+        results = scrapetube.get_search(query, results_type="channel", limit=10)
         channels = []
         for res in results:
             try:
-                # Extracting relevant info from scrapetube output
-                # This depends on scrapetube's returned dict structure
+                # Extracting data from the search result object
                 channel_id = res['channelId']
                 title = res['title']['simpleText']
-                thumbnail = res['thumbnail']['thumbnails'][0]['url']
+                
+                # Handle thumbnails and protocol-relative URLs
+                thumbnails = res.get('thumbnail', {}).get('thumbnails', [])
+                thumbnail = thumbnails[-1]['url'] if thumbnails else ""
+                if thumbnail.startswith('//'):
+                    thumbnail = 'https:' + thumbnail
+                
+                # Extract subscriber count and handle (@username)
+                subscribers = res.get('videoCountText', {}).get('simpleText', '')
+                handle = res.get('subscriberCountText', {}).get('simpleText', '')
+                
                 channels.append({
                     "channel_id": channel_id,
                     "channel_name": title,
-                    "thumbnail": thumbnail
+                    "thumbnail": thumbnail,
+                    "subscribers": subscribers,
+                    "handle": handle
                 })
-            except (KeyError, TypeError):
+            except (KeyError, TypeError) as e:
                 continue
         return jsonify(channels)
     except Exception as e:
