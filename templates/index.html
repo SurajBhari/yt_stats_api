@@ -175,7 +175,6 @@
             font-style: italic;
         }
 
-        /* Form Section */
         .request-section {
             background: #141414;
             border-radius: 40px;
@@ -184,56 +183,79 @@
             text-align: center;
         }
 
-        .form-container {
-            max-width: 500px;
+        .search-container {
+            max-width: 600px;
             margin: 40px auto 0;
+            position: relative;
         }
 
-        .input-group {
-            margin-bottom: 20px;
-            text-align: left;
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
         }
 
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+        .search-input-wrapper i {
+            position: absolute;
+            left: 20px;
             color: var(--text-dim);
         }
 
-        input {
-            width: 100%;
-            padding: 15px 20px;
-            border-radius: 12px;
+        .search-input-wrapper input {
+            padding-left: 50px;
+        }
+
+        #searchResults {
+            margin-top: 20px;
+            display: grid;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .search-result-item {
             background: #1F1F1F;
             border: 1px solid var(--glass-border);
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: #252525;
-        }
-
-        .submit-btn {
-            width: 100%;
             padding: 15px;
-            border: none;
-            border-radius: 12px;
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 10px;
+            text-align: left;
         }
 
-        .submit-btn:hover {
-            background: #E60000;
-            transform: scale(1.02);
+        .search-result-item:hover {
+            border-color: var(--primary);
+            background: #252525;
+            transform: translateX(5px);
+        }
+
+        .search-result-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .search-result-item .info h4 {
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
+
+        .search-result-item .info p {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-top: 20px;
+            color: var(--primary);
+            font-size: 1.5rem;
         }
 
         /* Footer */
@@ -314,26 +336,58 @@
                 <code>!wordcount "pog"</code>
                 <p class="example">"'pog' has been said 15,234 times in chat."</p>
             </div>
+            <div class="card">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <h3>The First Time</h3>
+                <p>Find the exact moment and person who first said a word.</p>
+                <code>!firstsaid "hello"</code>
+                <p class="example">"'hello' was first said by UserX 200 days ago. [Link]"</p>
+            </div>
+            <div class="card">
+                <i class="fa-solid fa-hourglass-start"></i>
+                <h3>The OG Cult</h3>
+                <p>List the absolute first members who joined your chat.</p>
+                <code>!oldest 5</code>
+                <p class="example">"1. UserA: 500 days ago | 2. UserB: 498 days ago..."</p>
+            </div>
         </div>
     </section>
 
+    <section class="section" id="install">
+        <div class="section-title">
+            <h2>How to Install</h2>
+            <p>Setting up is as simple as copying these commands into your chat.</p>
+        </div>
+        <div class="card" style="max-width: 800px; margin: 0 auto; text-align: left;">
+            <p style="margin-bottom: 20px;">Copy and paste these commands into your YouTube or Twitch chat where Nightbot is an editor:</p>
+            <div style="position: relative;">
+                <code style="white-space: pre-wrap; word-break: break-all; padding: 20px; font-size: 0.8rem; line-height: 2;">!addcom !streak $(urlfetch https://stats.streamsnip.com/streak)
+!addcom !top $(urlfetch https://stats.streamsnip.com/top/$(query))
+!addcom !stats $(urlfetch https://stats.streamsnip.com/stats)
+!addcom !wordcount $(urlfetch https://stats.streamsnip.com/wordcount/$(querystring))
+!addcom !oldest $(urlfetch https://stats.streamsnip.com/oldest/$(query))
+!addcom !youngest $(urlfetch https://stats.streamsnip.com/youngest/$(query))
+!addcom !firstsaid $(urlfetch https://stats.streamsnip.com/firstsaid/$(querystring))</code>
+                <button class="btn btn-outline" style="position: absolute; top: 10px; right: 10px; padding: 5px 15px; font-size: 0.7rem;" onclick="copyCommands()">Copy All</button>
+            </div>
+        </div>
+    </section>
+
+
     <section class="request-section" id="request">
         <div class="section-title">
-            <h2>Start Tracking Today</h2>
-            <p>Submit your channel ID to join our analytics network.</p>
+            <h2>Find Your Channel</h2>
+            <p>Search for your channel to start tracking chat analytics.</p>
         </div>
-        <div class="form-container">
-            <form id="trackForm">
-                <div class="input-group">
-                    <label for="channel_name">Channel Name</label>
-                    <input type="text" id="channel_name" placeholder="e.g. Suraj Bhari" required>
-                </div>
-                <div class="input-group">
-                    <label for="channel_id">YouTube Channel ID</label>
-                    <input type="text" id="channel_id" placeholder="e.g. UCxxxxxxxxx" required>
-                </div>
-                <button type="submit" class="submit-btn">Submit Request</button>
-            </form>
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="channelSearch" placeholder="Search for your channel name...">
+            </div>
+            <div id="loading" class="loading-spinner">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+            </div>
+            <div id="searchResults"></div>
         </div>
     </section>
 
@@ -345,11 +399,55 @@
     </footer>
 
     <script>
-        document.getElementById('trackForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const channelId = document.getElementById('channel_id').value;
-            const channelName = document.getElementById('channel_name').value;
+        let searchTimeout;
+        const searchInput = document.getElementById('channelSearch');
+        const resultsContainer = document.getElementById('searchResults');
+        const loading = document.getElementById('loading');
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
             
+            if (query.length < 3) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(() => performSearch(query), 500);
+        });
+
+        async function performSearch(query) {
+            loading.style.display = 'block';
+            try {
+                const response = await fetch(`/api/search-channels?q=${encodeURIComponent(query)}`);
+                const channels = await response.json();
+                
+                resultsContainer.innerHTML = '';
+                channels.forEach(ch => {
+                    const el = document.createElement('div');
+                    el.className = 'search-result-item';
+                    el.innerHTML = `
+                        <img src="${ch.thumbnail}" alt="${ch.channel_name}">
+                        <div class="info">
+                            <h4>${ch.channel_name}</h4>
+                            <p>${ch.channel_id}</p>
+                        </div>
+                    `;
+                    el.onclick = () => requestTracking(ch.channel_id, ch.channel_name);
+                    resultsContainer.appendChild(el);
+                });
+
+                if (channels.length === 0) {
+                    resultsContainer.innerHTML = '<p style="color: var(--text-dim); margin-top: 20px;">No channels found.</p>';
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function requestTracking(channelId, channelName) {
             try {
                 const response = await fetch('/api/request-track', {
                     method: 'POST',
@@ -358,19 +456,35 @@
                 });
                 
                 const result = await response.json();
-                
                 const notify = document.getElementById('notification');
+                
                 notify.textContent = result.message;
                 notify.style.background = response.ok ? '#2ECC71' : '#E74C3C';
                 notify.classList.add('show');
                 
-                if(response.ok) e.target.reset();
+                if (response.ok) {
+                    searchInput.value = '';
+                    resultsContainer.innerHTML = '';
+                }
                 
                 setTimeout(() => notify.classList.remove('show'), 3000);
             } catch (err) {
                 console.error(err);
             }
-        });
+        }
+
+        function copyCommands() {
+            const code = document.querySelector('#install code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const notify = document.getElementById('notification');
+                notify.textContent = "Commands copied to clipboard!";
+                notify.style.background = '#2ECC71';
+                notify.classList.add('show');
+                setTimeout(() => notify.classList.remove('show'), 3000);
+            });
+        }
     </script>
+
+
 </body>
 </html>

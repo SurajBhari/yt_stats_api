@@ -7,6 +7,7 @@ import requests
 import asyncio
 import time
 import humanize
+import scrapetube
 from db import db
 from config import config
 
@@ -51,6 +52,35 @@ def admin_page():
     return render_template("admin.html")
 
 # --- Tracking API ---
+
+@app.get("/api/search-channels")
+def search_channels():
+    query = request.args.get("q")
+    if not query:
+        return jsonify([])
+    
+    try:
+        # Get first 10 results
+        results = scrapetube.search(query, content_type="channel", limit=10)
+        channels = []
+        for res in results:
+            try:
+                # Extracting relevant info from scrapetube output
+                # This depends on scrapetube's returned dict structure
+                channel_id = res['channelId']
+                title = res['title']['simpleText']
+                thumbnail = res['thumbnail']['thumbnails'][0]['url']
+                channels.append({
+                    "channel_id": channel_id,
+                    "channel_name": title,
+                    "thumbnail": thumbnail
+                })
+            except (KeyError, TypeError):
+                continue
+        return jsonify(channels)
+    except Exception as e:
+        print(f"Search error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.post("/api/request-track")
 def request_track():
