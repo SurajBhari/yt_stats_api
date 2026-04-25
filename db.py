@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2 import pool
-from config.sample import config
+from config import config
 
 class Database:
     _instance = None
