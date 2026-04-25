@@ -83,7 +83,8 @@ def process_video(vid, channel_id):
                         )
                     )
                     inserted_count += 1
-                except Exception:
+                except Exception as e:
+                    print(f"[ERROR] Failed to insert message: {message} error: {e}")
                     continue
             conn.commit()
     finally:
@@ -115,7 +116,7 @@ def process_channel(channel_id):
         update_last_updated(channel_id)
         return
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         futures = [executor.submit(process_video, vid, channel_id) for vid in videos]
         for future in as_completed(futures):
             try:
