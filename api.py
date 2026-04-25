@@ -11,7 +11,7 @@ import time
 import humanize
 import scrapetube
 from db import db
-from config import config
+from config.sample import config
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = config.SECRET_KEY

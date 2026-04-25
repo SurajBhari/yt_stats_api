@@ -5,7 +5,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from db import db
-from config import config
+from config.sample import config
 
 # Initialize DB
 db.init_db()
