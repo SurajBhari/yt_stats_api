@@ -17,6 +17,7 @@ db.init_db()
 
 no_data_str = "We don't have data of this channel. please contact AG at http://discord.surajbhari.com"
 
+<<<<<<< HEAD
 def get_channel_info():
     try:
         channel = parse_qs(request.headers.get('Nightbot-Channel', ''))
@@ -33,6 +34,9 @@ def get_user_info():
         return user_id, user_name
     except Exception:
         return None, None
+=======
+no_data_str = "We don't have data of this channel. please contact Your admin"
+>>>>>>> 9cc4c94eebe87233c73a251da43a759515cf503e
 
 @app.get("/")
 def main():
