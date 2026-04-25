@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.consumer import oauth_authorized
 import os 
 from json import load
 from datetime import datetime, timedelta
@@ -63,6 +64,72 @@ google_bp = make_google_blueprint(
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
+@oauth_authorized.connect_via(google_bp)
+def google_logged_in(blueprint, token):
+    print(f"[DEBUG] Google login authorized. Token received: {token is not None}")
+    
+    # Step 1: Get User Info
+    resp = blueprint.session.get("/oauth2/v2/userinfo")
+    if not resp.ok:
+        print(f"[ERROR] Failed to fetch user info: {resp.text}")
+        return False
+    
+    info = resp.json()
+    google_id = info["id"]
+    email = info["email"]
+    name = info.get("name")
+    print(f"[DEBUG] User Info: {email} ({google_id})")
+
+    # Step 2: Get YouTube Data
+    yt_resp = blueprint.session.get("https://www.googleapis.com/youtube/v3/channels?part=id&mine=true")
+    youtube_id = None
+    if yt_resp.ok:
+        yt_data = yt_resp.json()
+        if "items" in yt_data and len(yt_data["items"]) > 0:
+            youtube_id = yt_data["items"][0]["id"]
+            print(f"[DEBUG] YouTube ID: {youtube_id}")
+    else:
+        print(f"[WARNING] YouTube request failed: {yt_resp.text}")
+
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            # Check if user exists
+            cursor.execute("SELECT id, email, name, role, youtube_id FROM users WHERE google_id = %s", (google_id,))
+            data = cursor.fetchone()
+            
+            if not data:
+                print(f"[DEBUG] Creating new user for {email}")
+                # Create new user
+                cursor.execute(
+                    "INSERT INTO users (email, name, google_id, youtube_id) VALUES (%s, %s, %s, %s) RETURNING id, email, name, role, youtube_id",
+                    (email, name, google_id, youtube_id)
+                )
+                data = cursor.fetchone()
+                conn.commit()
+            else:
+                print(f"[DEBUG] Existing user found: {data[0]}")
+                # Update youtube_id if it changed or was missing
+                if data[4] != youtube_id:
+                    cursor.execute("UPDATE users SET youtube_id = %s WHERE google_id = %s", (youtube_id, google_id))
+                    conn.commit()
+                    # Refresh data for User object
+                    data = list(data)
+                    data[4] = youtube_id
+            
+            user = User(*data)
+            login_user(user)
+            print(f"[DEBUG] Login successful for {user.email}")
+    except Exception as e:
+        print(f"[ERROR] Database error during login: {e}")
+        return False
+    finally:
+        db.return_connection(conn)
+    
+    # Returning False tells Flask-Dance NOT to do its own default behavior if you want to redirect manually
+    # But usually returning None (default) is fine.
+
+
 # --- Helper Functions ---
 
 def get_channel_info():
@@ -115,63 +182,10 @@ def login_admin():
 def me():
     return json.dumps(current_user.__dict__, indent=4)
 
-@app.route("/login/google/authorized")
-def google_callback():
-    if not google.authorized:
-        return redirect(url_for("google.login"))
-    
-    # Step 1: Get User Info
-    resp = google.get("/oauth2/v2/userinfo")
-    if not resp.ok:
-        return "Failed to fetch user info from Google."
-    
-    info = resp.json()
-    google_id = info["id"]
-    email = info["email"]
-    name = info.get("name")
-
-    # Step 2: Get YouTube Data
-    yt_resp = google.get("https://www.googleapis.com/youtube/v3/channels?part=id&mine=true")
-    youtube_id = None
-    if yt_resp.ok:
-        yt_data = yt_resp.json()
-        if "items" in yt_data and len(yt_data["items"]) > 0:
-            youtube_id = yt_data["items"][0]["id"]
-
-    conn = db.get_connection()
-    try:
-        with conn.cursor() as cursor:
-            # Check if user exists
-            cursor.execute("SELECT id, email, name, role, youtube_id FROM users WHERE google_id = %s", (google_id,))
-            data = cursor.fetchone()
-            
-            if not data:
-                # Create new user
-                cursor.execute(
-                    "INSERT INTO users (email, name, google_id, youtube_id) VALUES (%s, %s, %s, %s) RETURNING id, email, name, role, youtube_id",
-                    (email, name, google_id, youtube_id)
-                )
-                data = cursor.fetchone()
-                conn.commit()
-            else:
-                # Update youtube_id if it changed or was missing
-                if data[4] != youtube_id:
-                    cursor.execute("UPDATE users SET youtube_id = %s WHERE google_id = %s", (youtube_id, google_id))
-                    conn.commit()
-                    # Refresh data for User object
-                    data = list(data)
-                    data[4] = youtube_id
-            
-            user = User(*data)
-            login_user(user)
-    finally:
-        db.return_connection(conn)
-    
-    return redirect(url_for("index"))
-
 @app.route("/logout")
 @login_required
 def logout():
+    print(f"[DEBUG] Logging out user: {current_user.email}")
     logout_user()
     return redirect(url_for("index"))
 
