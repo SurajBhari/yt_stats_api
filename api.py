@@ -48,10 +48,13 @@ def load_user(user_id):
 
 # --- Google OAuth ---
 
+os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
+
 google_bp = make_google_blueprint(
     client_id=config.GOOGLE_CLIENT_ID,
     client_secret=config.GOOGLE_CLIENT_SECRET,
     scope=[
+        "openid",
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile",
         "https://www.googleapis.com/auth/youtube.readonly"
@@ -107,7 +110,7 @@ def login_admin():
     flash("Invalid admin password")
     return redirect(url_for('login'))
 
-@app.route("/login/google/callback")
+@app.route("/login/google/authorized")
 def google_callback():
     if not google.authorized:
         return redirect(url_for("google.login"))
