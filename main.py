@@ -1,14 +1,22 @@
-from chat_downloader import ChatDownloader, errors
+from chat_downloader.sites import YouTubeChatDownloader
+from chat_downloader import ChatDownloader
 import scrapetube
 from datetime import datetime
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 from db import db
+import os
 from config import config
 
 # Initialize DB
 db.init_db()
+cookies = ""
+if "cookies.txt" in os.listdir():
+    cookies = "cookies.txt"
+else:
+    cookies = None
+    print("Cookies not found. Please add cookies.txt to the directory.")
 
 def get_approved_channels():
     conn = db.get_connection()
@@ -45,7 +53,7 @@ def process_video(vid, channel_id):
     conn = db.get_connection()
     
     try:
-        chat = ChatDownloader().get_chat(stream_id)
+        chat = ChatDownloader(cookies=cookies).get_chat(stream_id)
     except Exception as e:
         with print_lock:
             print(f"[ERROR] Failed to download chat for {stream_id}: {e}")
