@@ -1,4 +1,4 @@
-chat_downloader
+git+https://github.com/Indigo128/chat-downloader
 scrapetube
 flask
 humanize
