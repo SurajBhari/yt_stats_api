@@ -75,9 +75,18 @@ class Database:
                         name TEXT,
                         role TEXT DEFAULT 'user', -- admin, user
                         google_id TEXT UNIQUE,
-                        youtube_id TEXT, -- Added for YT channel association
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
+                """)
+                
+                # Migration: Add youtube_id if it doesn't exist
+                cursor.execute("""
+                    DO $$ 
+                    BEGIN 
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='youtube_id') THEN
+                            ALTER TABLE users ADD COLUMN youtube_id TEXT;
+                        END IF;
+                    END $$;
                 """)
                 
                 # Seed admin user if not exists
