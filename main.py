@@ -8,6 +8,7 @@ import threading
 from db import db
 import os
 from config import config
+import random
 
 # Initialize DB
 db.init_db()
@@ -101,7 +102,7 @@ def process_video(vid, channel_id):
     with print_lock:
         print(f"[DONE] {stream_id}: Inserted {inserted_count} messages.")
 
-def process_channel(channel_id):
+def process_channel(channel_id, max_workers=1):
     print(f"\nProcessing channel: {channel_id}")
     existing_stream_ids = get_existing_stream_ids(channel_id)
     
@@ -124,7 +125,7 @@ def process_channel(channel_id):
         update_last_updated(channel_id)
         return
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_video, vid, channel_id) for vid in videos]
         for future in as_completed(futures):
             try:
@@ -137,10 +138,14 @@ def process_channel(channel_id):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--Channel", help="Specific Channel ID to process (bypasses DB status)")
+    parser.add_argument("-t", "--threads", help="Number of threads to use", default=1)
+    
     args = parser.parse_args()
 
+    max_workers = args.threads
+
     if args.Channel:
-        process_channel(args.Channel)
+        process_channel(args.Channel, max_workers=max_workers)
     else:
         channels = get_approved_channels()
         if not channels:
@@ -148,8 +153,8 @@ def main():
             return
         
         print(f"Found {len(channels)} approved channels to process.")
-        for channel_id in channels:
-            process_channel(channel_id)
+        for channel_id in random.shuffle(channels):
+            process_channel(channel_id, max_workers=max_workers)
 
 if __name__ == "__main__":
     main()
