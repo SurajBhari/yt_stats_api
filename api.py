@@ -26,18 +26,19 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 class User(UserMixin):
-    def __init__(self, id, email, name, role):
+    def __init__(self, id, email, name, role, youtube_id=None):
         self.id = id
         self.email = email
         self.name = name
         self.role = role
+        self.youtube_id = youtube_id
 
 @login_manager.user_loader
 def load_user(user_id):
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT id, email, name, role FROM users WHERE id = %s", (user_id,))
+            cursor.execute("SELECT id, email, name, role, youtube_id FROM users WHERE id = %s", (user_id,))
             data = cursor.fetchone()
             if data:
                 return User(*data)
@@ -50,7 +51,11 @@ def load_user(user_id):
 google_bp = make_google_blueprint(
     client_id=config.GOOGLE_CLIENT_ID,
     client_secret=config.GOOGLE_CLIENT_SECRET,
-    scope=["profile", "email"]
+    scope=[
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/youtube.readonly"
+    ]
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
@@ -107,6 +112,7 @@ def google_callback():
     if not google.authorized:
         return redirect(url_for("google.login"))
     
+    # Step 1: Get User Info
     resp = google.get("/oauth2/v2/userinfo")
     if not resp.ok:
         return "Failed to fetch user info from Google."
@@ -116,21 +122,37 @@ def google_callback():
     email = info["email"]
     name = info.get("name")
 
+    # Step 2: Get YouTube Data
+    yt_resp = google.get("https://www.googleapis.com/youtube/v3/channels?part=id&mine=true")
+    youtube_id = None
+    if yt_resp.ok:
+        yt_data = yt_resp.json()
+        if "items" in yt_data and len(yt_data["items"]) > 0:
+            youtube_id = yt_data["items"][0]["id"]
+
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
             # Check if user exists
-            cursor.execute("SELECT id, email, name, role FROM users WHERE google_id = %s", (google_id,))
+            cursor.execute("SELECT id, email, name, role, youtube_id FROM users WHERE google_id = %s", (google_id,))
             data = cursor.fetchone()
             
             if not data:
                 # Create new user
                 cursor.execute(
-                    "INSERT INTO users (email, name, google_id) VALUES (%s, %s, %s) RETURNING id, email, name, role",
-                    (email, name, google_id)
+                    "INSERT INTO users (email, name, google_id, youtube_id) VALUES (%s, %s, %s, %s) RETURNING id, email, name, role, youtube_id",
+                    (email, name, google_id, youtube_id)
                 )
                 data = cursor.fetchone()
                 conn.commit()
+            else:
+                # Update youtube_id if it changed or was missing
+                if data[4] != youtube_id:
+                    cursor.execute("UPDATE users SET youtube_id = %s WHERE google_id = %s", (youtube_id, google_id))
+                    conn.commit()
+                    # Refresh data for User object
+                    data = list(data)
+                    data[4] = youtube_id
             
             user = User(*data)
             login_user(user)

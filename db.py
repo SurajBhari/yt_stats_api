@@ -75,6 +75,7 @@ class Database:
                         name TEXT,
                         role TEXT DEFAULT 'user', -- admin, user
                         google_id TEXT UNIQUE,
+                        youtube_id TEXT, -- Added for YT channel association
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
                 """)
