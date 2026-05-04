@@ -32,8 +32,29 @@ def get_existing_stream_ids(channel_id):
     conn = db.get_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT DISTINCT stream_id FROM chats WHERE channel_id = %s", (channel_id,))
+            # Check both processed_videos and chats table (for legacy data)
+            cursor.execute("""
+                SELECT video_id FROM processed_videos WHERE channel_id = %s
+                UNION
+                SELECT DISTINCT stream_id FROM chats WHERE channel_id = %s
+            """, (channel_id, channel_id))
             return {row[0] for row in cursor.fetchall()}
+    finally:
+        db.return_connection(conn)
+
+def mark_video_processed(video_id, channel_id, status, message_count=0):
+    conn = db.get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO processed_videos (video_id, channel_id, status, message_count)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (video_id) DO UPDATE SET 
+                    status = EXCLUDED.status,
+                    message_count = EXCLUDED.message_count,
+                    processed_at = CURRENT_TIMESTAMP
+            """, (video_id, channel_id, status, message_count))
+            conn.commit()
     finally:
         db.return_connection(conn)
 
@@ -51,16 +72,23 @@ print_lock = threading.Lock()
 
 def process_video(vid, channel_id):
     stream_id = vid["videoId"]
-    conn = db.get_connection()
     
     try:
         chat = ChatDownloader(cookies=cookies).get_chat(stream_id)
     except Exception as e:
+        error_msg = str(e)
         with print_lock:
-            print(f"[ERROR] Failed to download chat for {stream_id}: {e}")
-        db.return_connection(conn)
+            print(f"[ERROR] Failed to download chat for {stream_id}: {error_msg}")
+        
+        # If live chat is not available, mark it as such so we don't retry
+        if "Live chat replay is not available" in error_msg:
+            mark_video_processed(stream_id, channel_id, 'no_replay')
+        elif "No chat found" in error_msg: # Some other potential error strings
+            mark_video_processed(stream_id, channel_id, 'no_chat')
+        
         return
     
+    conn = db.get_connection()
     inserted_count = 0
     try:
         with conn.cursor() as cursor:
@@ -98,6 +126,10 @@ def process_video(vid, channel_id):
             conn.commit()
     finally:
         db.return_connection(conn)
+
+    # Mark as processed with the count of messages
+    status = 'success' if inserted_count > 0 else 'no_chat'
+    mark_video_processed(stream_id, channel_id, status, inserted_count)
 
     with print_lock:
         print(f"[DONE] {stream_id}: Inserted {inserted_count} messages.")

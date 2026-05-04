@@ -67,6 +67,18 @@ class Database:
                     CREATE INDEX IF NOT EXISTS idx_channel_status ON channels(status);
                 """)
 
+                # Table for processed videos (to avoid retrying videos with no chat or replay disabled)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS processed_videos (
+                        video_id TEXT PRIMARY KEY,
+                        channel_id TEXT NOT NULL,
+                        status TEXT, -- 'success', 'no_chat', 'no_replay', 'error'
+                        message_count INTEGER DEFAULT 0,
+                        processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_processed_channel_id ON processed_videos(channel_id);
+                """)
+
                 # Table for users
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
