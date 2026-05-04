@@ -9,6 +9,8 @@ from db import db
 import os
 from config import config
 import random
+from tqdm import tqdm
+import time
 
 # Initialize DB
 db.init_db()
@@ -70,15 +72,19 @@ def update_last_updated(channel_id):
 # Thread-safe print
 print_lock = threading.Lock()
 
-def process_video(vid, channel_id):
+def process_video(vid, channel_id, pbar=None):
     stream_id = vid["videoId"]
     
     try:
         chat = ChatDownloader(cookies=cookies).get_chat(stream_id)
     except Exception as e:
         error_msg = str(e)
-        with print_lock:
-            print(f"[ERROR] Failed to download chat for {stream_id}: {error_msg}")
+        log_msg = f"[ERROR] Failed to download chat for {stream_id}: {error_msg}"
+        if pbar:
+            pbar.write(log_msg)
+        else:
+            with print_lock:
+                print(log_msg)
         
         # If live chat is not available, mark it as such so we don't retry
         if "Live chat replay is not available" in error_msg:
@@ -131,41 +137,59 @@ def process_video(vid, channel_id):
     status = 'success' if inserted_count > 0 else 'no_chat'
     mark_video_processed(stream_id, channel_id, status, inserted_count)
 
-    with print_lock:
-        print(f"[DONE] {stream_id}: Inserted {inserted_count} messages.")
+    log_msg = f"[DONE] {stream_id}: Inserted {inserted_count} messages."
+    if pbar:
+        pbar.write(log_msg)
+    else:
+        with print_lock:
+            print(log_msg)
 
-def process_channel(channel_id, max_workers=1):
-    print(f"\nProcessing channel: {channel_id}")
+def get_unprocessed_videos(channel_id):
     existing_stream_ids = get_existing_stream_ids(channel_id)
     
-    # Get video list
     try:
         vids = scrapetube.get_channel(channel_id, content_type="streams")
         videos = [
-            vid for vid in vids 
+            (vid, channel_id) for vid in vids 
             if vid["videoId"] not in existing_stream_ids and 
                vid["thumbnailOverlays"][0]["thumbnailOverlayTimeStatusRenderer"]["style"] != "LIVE"
         ]
+        return videos[::-1] # Oldest first
     except Exception as e:
         print(f"Error fetching videos for {channel_id}: {e}")
+        return []
+
+def process_all_videos(all_tasks, max_workers=1):
+    if not all_tasks:
         return
 
-    videos = videos[::-1]
-    print(f"Found {len(videos)} unprocessed videos for {channel_id}.")
-
-    if not videos:
-        update_last_updated(channel_id)
-        return
+    print(f"Starting processing of {len(all_tasks)} videos using {max_workers} threads...")
+    
+    # Custom bar format to meet user requirements
+    bar_format = "{desc}: {percentage:3.2f}% | {n_fmt}/{total_fmt} | Speed: {rate_fmt} | ETA: {remaining} | {postfix}"
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process_video, vid, channel_id) for vid in videos]
+        pbar = tqdm(total=len(all_tasks), desc="Processing", bar_format=bar_format)
+        
+        futures = {executor.submit(process_video, vid, channel_id, pbar): (vid, channel_id) for vid, channel_id in all_tasks}
+        
         for future in as_completed(futures):
+            pbar.update(1)
+            done = pbar.n
+            left = pbar.total - done
+            pbar.set_postfix_str(f"Done: {done}, Left: {left}")
+            
             try:
                 future.result()
             except Exception as e:
-                print(f"[Thread Error] {e}")
-    
-    update_last_updated(channel_id)
+                pbar.write(f"[Thread Error] {e}")
+        
+        pbar.close()
+
+    # Update last_updated for all involved channels
+    unique_channels = set(task[1] for task in all_tasks)
+    for channel_id in unique_channels:
+        update_last_updated(channel_id)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -176,8 +200,11 @@ def main():
 
     max_workers = int(args.threads)
     print(f"Using {max_workers} threads.")
+    
+    all_tasks = []
     if args.Channel:
-        process_channel(args.Channel, max_workers=max_workers)
+        print(f"Fetching videos for channel: {args.Channel}")
+        all_tasks.extend(get_unprocessed_videos(args.Channel))
     else:
         channels = get_approved_channels()
         if not channels:
@@ -185,9 +212,17 @@ def main():
             return
         
         random.shuffle(channels)
-        print(f"Found {len(channels)} approved channels to process.")
-        for channel_id in channels:
-            process_channel(channel_id, max_workers=max_workers)
+        print(f"Found {len(channels)} approved channels. Fetching video lists...")
+        
+        # Use tqdm for channel list fetching too
+        for channel_id in tqdm(channels, desc="Scanning channels"):
+            all_tasks.extend(get_unprocessed_videos(channel_id))
+    
+    if not all_tasks:
+        print("No new videos found to process.")
+        return
+
+    process_all_videos(all_tasks, max_workers=max_workers)
 
 if __name__ == "__main__":
     main()
